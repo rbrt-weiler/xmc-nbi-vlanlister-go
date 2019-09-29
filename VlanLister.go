@@ -39,8 +39,8 @@ import (
 	"time"
 )
 
-const ToolName string = "BELL XMC NBI DeviceLister"
-const ToolVersion string = "1.0"
+const ToolName string = "BELL XMC NBI VlanLister"
+const ToolVersion string = "1.2"
 const HttpUserAgent string = ToolName + "/" + ToolVersion
 const GqlDeviceListQuery string = `query {
 	network {
@@ -172,6 +172,32 @@ type ResultSet struct {
 	Tagged      []string
 }
 
+func retrieveApiResult(httpClient http.Client, apiUrl string, username string, password string, queryString string) []byte {
+	req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	req.Header.Set("User-Agent", HttpUserAgent)
+	req.SetBasicAuth(username, password)
+
+	httpQuery := req.URL.Query()
+	httpQuery.Add("query", queryString)
+	req.URL.RawQuery = httpQuery.Encode()
+
+	res, getErr := httpClient.Do(req)
+	if getErr != nil {
+		log.Fatal(getErr)
+	}
+
+	body, readErr := ioutil.ReadAll(res.Body)
+	if readErr != nil {
+		log.Fatal(readErr)
+	}
+
+	return body
+}
+
 func main() {
 	var host string
 	var httpTimeout uint
@@ -212,27 +238,7 @@ func main() {
 		Timeout:   time.Second * time.Duration(httpTimeout),
 	}
 
-	req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
-	if err != nil {
-		stdOut.Fatal(err)
-	}
-
-	req.Header.Set("User-Agent", HttpUserAgent)
-	req.SetBasicAuth(username, password)
-
-	httpQuery := req.URL.Query()
-	httpQuery.Add("query", GqlDeviceListQuery)
-	req.URL.RawQuery = httpQuery.Encode()
-
-	res, getErr := nbiClient.Do(req)
-	if getErr != nil {
-		stdOut.Fatal(getErr)
-	}
-
-	body, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		stdOut.Fatal(readErr)
-	}
+	body := retrieveApiResult(nbiClient, apiUrl, username, password, GqlDeviceListQuery)
 
 	devices := DeviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
@@ -255,30 +261,7 @@ func main() {
 			stdOut.Printf("Waiting for %d seconds...\n", mutationWait)
 			time.Sleep(time.Second * time.Duration(mutationWait))
 
-			req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
-			if err != nil {
-				stdErr.Println(err)
-				continue
-			}
-
-			req.Header.Set("User-Agent", HttpUserAgent)
-			req.SetBasicAuth(username, password)
-
-			httpQuery := req.URL.Query()
-			httpQuery.Add("query", fmt.Sprintf(GqlMutationQuery, deviceIp))
-			req.URL.RawQuery = httpQuery.Encode()
-
-			res, getErr := nbiClient.Do(req)
-			if getErr != nil {
-				stdErr.Println(getErr)
-				continue
-			}
-
-			body, readErr := ioutil.ReadAll(res.Body)
-			if readErr != nil {
-				stdErr.Println(readErr)
-				continue
-			}
+			body := retrieveApiResult(nbiClient, apiUrl, username, password, fmt.Sprintf(GqlMutationQuery, deviceIp))
 
 			mutation := MutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
@@ -308,30 +291,7 @@ func main() {
 
 	queryResults := []ResultSet{}
 	for _, deviceIp := range rediscoveredDevices {
-		req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
-		if err != nil {
-			stdErr.Println(err)
-			continue
-		}
-
-		req.Header.Set("User-Agent", HttpUserAgent)
-		req.SetBasicAuth(username, password)
-
-		httpQuery := req.URL.Query()
-		httpQuery.Add("query", fmt.Sprintf(GqlDeviceDataQuery, deviceIp, deviceIp))
-		req.URL.RawQuery = httpQuery.Encode()
-
-		res, getErr := nbiClient.Do(req)
-		if getErr != nil {
-			stdErr.Println(getErr)
-			continue
-		}
-
-		body, readErr := ioutil.ReadAll(res.Body)
-		if readErr != nil {
-			stdErr.Println(readErr)
-			continue
-		}
+		body := retrieveApiResult(nbiClient, apiUrl, username, password, fmt.Sprintf(GqlDeviceDataQuery, deviceIp, deviceIp))
 
 		jsonData := DeviceData{}
 		jsonErr := json.Unmarshal(body, &jsonData)
