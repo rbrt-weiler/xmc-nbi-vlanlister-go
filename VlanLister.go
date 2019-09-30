@@ -40,7 +40,7 @@ import (
 )
 
 const ToolName string = "BELL XMC NBI VlanLister"
-const ToolVersion string = "1.2"
+const ToolVersion string = "1.2.1"
 const HttpUserAgent string = ToolName + "/" + ToolVersion
 const GqlDeviceListQuery string = `query {
 	network {
@@ -172,7 +172,7 @@ type ResultSet struct {
 	Tagged      []string
 }
 
-func retrieveApiResult(httpClient http.Client, apiUrl string, username string, password string, queryString string) []byte {
+func retrieveApiResult(httpClient *http.Client, apiUrl string, username string, password string, queryString string) []byte {
 	req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
 	if err != nil {
 		log.Fatal(err)
@@ -238,7 +238,7 @@ func main() {
 		Timeout:   time.Second * time.Duration(httpTimeout),
 	}
 
-	body := retrieveApiResult(nbiClient, apiUrl, username, password, GqlDeviceListQuery)
+	body := retrieveApiResult(&nbiClient, apiUrl, username, password, GqlDeviceListQuery)
 
 	devices := DeviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
@@ -261,7 +261,7 @@ func main() {
 			stdOut.Printf("Waiting for %d seconds...\n", mutationWait)
 			time.Sleep(time.Second * time.Duration(mutationWait))
 
-			body := retrieveApiResult(nbiClient, apiUrl, username, password, fmt.Sprintf(GqlMutationQuery, deviceIp))
+			body := retrieveApiResult(&nbiClient, apiUrl, username, password, fmt.Sprintf(GqlMutationQuery, deviceIp))
 
 			mutation := MutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
@@ -291,7 +291,7 @@ func main() {
 
 	queryResults := []ResultSet{}
 	for _, deviceIp := range rediscoveredDevices {
-		body := retrieveApiResult(nbiClient, apiUrl, username, password, fmt.Sprintf(GqlDeviceDataQuery, deviceIp, deviceIp))
+		body := retrieveApiResult(&nbiClient, apiUrl, username, password, fmt.Sprintf(GqlDeviceDataQuery, deviceIp, deviceIp))
 
 		jsonData := DeviceData{}
 		jsonErr := json.Unmarshal(body, &jsonData)
