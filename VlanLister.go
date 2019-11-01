@@ -39,20 +39,14 @@ import (
 	"time"
 )
 
-const ToolName string = "BELL XMC NBI VlanLister"
-const ToolVersion string = "1.2.1"
+const ToolName string = "BELL XMC NBI VlanLister.go"
+const ToolVersion string = "1.2.2"
 const HttpUserAgent string = ToolName + "/" + ToolVersion
 const GqlDeviceListQuery string = `query {
 	network {
 	  devices {
 		up
 		ip
-		sysName
-		deviceData {
-		  vendor
-		  family
-		  subFamily
-		}
 	  }
 	}
   }`
@@ -67,15 +61,10 @@ const GqlMutationQuery string = `mutation {
 const GqlDeviceDataQuery string = `query {
 	network {
 	  device(ip: "%s") {
-		deviceData {
-		  physicalPortCount
-		  serialNumber
-		}
 		id
 		sysName
 		sysLocation
 		nickName
-		firmware
 		baseMac
 		ip
 		entityData {
@@ -83,17 +72,12 @@ const GqlDeviceDataQuery string = `query {
 			ifIndex
 			ifName
 			ifOperStatus
-			ifSpeed
 			vlanList
 		  }
 		}
 	  }
 	  deviceVlans(ip: "%s") {
-		name
 		vid
-		primaryIp
-		netmask
-		ipForward
 	  }
 	}
   }`
@@ -103,14 +87,8 @@ type DeviceList struct {
 	Data struct {
 		Network struct {
 			Devices []struct {
-				Up         bool   `json:"up"`
-				IP         string `json:"ip"`
-				SysName    string `json:"sysName"`
-				DeviceData struct {
-					Vendor    string `json:"vendor"`
-					Family    string `json:"family"`
-					SubFamily string `json:"subFamily"`
-				} `json:"deviceData"`
+				Up bool   `json:"up"`
+				IP string `json:"ip"`
 			} `json:"devices"`
 		} `json:"network"`
 	} `json:"data"`
@@ -129,15 +107,10 @@ type DeviceData struct {
 	Data struct {
 		Network struct {
 			Device struct {
-				DeviceData struct {
-					PhysicalPortCount int    `json:"physicalPortCount"`
-					SerialNumber      string `json:"serialNumber"`
-				} `json:"deviceData"`
 				ID          int    `json:"id"`
 				SysName     string `json:"sysName"`
 				SysLocation string `json:"sysLocation"`
 				NickName    string `json:"nickName"`
-				Firmware    string `json:"firmware"`
 				BaseMac     string `json:"baseMac"`
 				IP          string `json:"ip"`
 				EntityData  struct {
@@ -145,17 +118,12 @@ type DeviceData struct {
 						IfIndex      int      `json:"ifIndex"`
 						IfName       string   `json:"ifName"`
 						IfOperStatus string   `json:"ifOperStatus"`
-						IfSpeed      string   `json:"ifSpeed"`
 						VlanList     []string `json:"vlanList"`
 					} `json:"allPorts"`
 				} `json:"entityData"`
 			} `json:"device"`
 			DeviceVlans []struct {
-				Name      string `json:"name"`
-				Vid       int    `json:"vid"`
-				PrimaryIP string `json:"primaryIp"`
-				Netmask   string `json:"netmask"`
-				IPForward int    `json:"ipForward"`
+				Vid int `json:"vid"`
 			} `json:"deviceVlans"`
 		} `json:"network"`
 	} `json:"data"`
