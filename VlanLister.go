@@ -39,10 +39,10 @@ import (
 	"time"
 )
 
-const ToolName string = "BELL XMC NBI VlanLister.go"
-const ToolVersion string = "1.2.2"
-const HttpUserAgent string = ToolName + "/" + ToolVersion
-const GqlDeviceListQuery string = `query {
+const toolName string = "BELL XMC NBI VlanLister.go"
+const toolVersion string = "1.2.3"
+const httpUserAgent string = toolName + "/" + toolVersion
+const gqldeviceListQuery string = `query {
 	network {
 	  devices {
 		up
@@ -50,7 +50,7 @@ const GqlDeviceListQuery string = `query {
 	  }
 	}
   }`
-const GqlMutationQuery string = `mutation {
+const gqlMutationQuery string = `mutation {
 	network {
 	  rediscoverDevices(input: {devices: [{ipAddress: "%s"}]}) {
 		status
@@ -58,7 +58,7 @@ const GqlMutationQuery string = `mutation {
 	  }
 	}
   }`
-const GqlDeviceDataQuery string = `query {
+const gqldeviceDataQuery string = `query {
 	network {
 	  device(ip: "%s") {
 		id
@@ -83,7 +83,7 @@ const GqlDeviceDataQuery string = `query {
   }`
 
 // created with https://mholt.github.io/json-to-go/
-type DeviceList struct {
+type deviceList struct {
 	Data struct {
 		Network struct {
 			Devices []struct {
@@ -93,7 +93,7 @@ type DeviceList struct {
 		} `json:"network"`
 	} `json:"data"`
 }
-type MutationMessage struct {
+type mutationMessage struct {
 	Data struct {
 		Network struct {
 			RediscoverDevices struct {
@@ -103,7 +103,7 @@ type MutationMessage struct {
 		} `json:"network"`
 	} `json:"data"`
 }
-type DeviceData struct {
+type deviceData struct {
 	Data struct {
 		Network struct {
 			Device struct {
@@ -128,7 +128,7 @@ type DeviceData struct {
 		} `json:"network"`
 	} `json:"data"`
 }
-type ResultSet struct {
+type resultSet struct {
 	ID          int
 	BaseMac     string
 	IP          string
@@ -140,13 +140,16 @@ type ResultSet struct {
 	Tagged      []string
 }
 
-func retrieveApiResult(httpClient *http.Client, apiUrl string, username string, password string, queryString string) []byte {
-	req, err := http.NewRequest(http.MethodGet, apiUrl, nil)
+var stdOut = log.New(os.Stdout, "", log.LstdFlags)
+var stdErr = log.New(os.Stderr, "", log.LstdFlags)
+
+func retrieveAPIResult(httpClient *http.Client, apiURL string, username string, password string, queryString string) []byte {
+	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
 	if err != nil {
-		log.Fatal(err)
+		stdOut.Fatal(err)
 	}
 
-	req.Header.Set("User-Agent", HttpUserAgent)
+	req.Header.Set("User-Agent", httpUserAgent)
 	req.SetBasicAuth(username, password)
 
 	httpQuery := req.URL.Query()
@@ -155,12 +158,15 @@ func retrieveApiResult(httpClient *http.Client, apiUrl string, username string, 
 
 	res, getErr := httpClient.Do(req)
 	if getErr != nil {
-		log.Fatal(getErr)
+		stdOut.Fatal(getErr)
+	}
+	if res.StatusCode != http.StatusOK {
+		stdOut.Fatalf("Error: %s\n", res.Status)
 	}
 
 	body, readErr := ioutil.ReadAll(res.Body)
 	if readErr != nil {
-		log.Fatal(readErr)
+		stdOut.Fatal(readErr)
 	}
 
 	return body
@@ -169,7 +175,7 @@ func retrieveApiResult(httpClient *http.Client, apiUrl string, username string, 
 func main() {
 	var host string
 	var httpTimeout uint
-	var insecureHttps bool
+	var insecureHTTPS bool
 	var username string
 	var password string
 	var mutateDevices bool
@@ -179,7 +185,7 @@ func main() {
 
 	flag.StringVar(&host, "host", "localhost", "XMC Hostname / IP")
 	flag.UintVar(&httpTimeout, "httptimeout", 5, "Timeout for HTTP(S) connections")
-	flag.BoolVar(&insecureHttps, "insecurehttps", false, "Do not validate HTTPS certificates")
+	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
 	flag.StringVar(&username, "username", "admin", "Username for HTTP auth")
 	flag.StringVar(&password, "password", "", "Password for HTTP auth")
 	flag.BoolVar(&mutateDevices, "mutdevices", true, "Mutate (rediscover) devices")
@@ -188,27 +194,24 @@ func main() {
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
 	flag.Parse()
 
-	stdOut := log.New(os.Stdout, "", log.LstdFlags)
-	stdErr := log.New(os.Stderr, "", log.LstdFlags)
-
 	if outfile == "" {
 		stdErr.Fatal("outfile is required.")
 	}
 
 	stdOut.Println("Discovering active devices...")
 
-	var apiUrl string = "https://" + host + ":8443/nbi/graphql"
+	var apiURL string = "https://" + host + ":8443/nbi/graphql"
 	httpTransport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureHttps},
+		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureHTTPS},
 	}
 	nbiClient := http.Client{
 		Transport: httpTransport,
 		Timeout:   time.Second * time.Duration(httpTimeout),
 	}
 
-	body := retrieveApiResult(&nbiClient, apiUrl, username, password, GqlDeviceListQuery)
+	body := retrieveAPIResult(&nbiClient, apiURL, username, password, gqldeviceListQuery)
 
-	devices := DeviceList{}
+	devices := deviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
 	if jsonErr != nil {
 		stdOut.Fatal(jsonErr)
@@ -225,13 +228,13 @@ func main() {
 
 	var rediscoveredDevices []string
 	if mutateDevices {
-		for _, deviceIp := range upDevices {
+		for _, deviceIP := range upDevices {
 			stdOut.Printf("Waiting for %d seconds...\n", mutationWait)
 			time.Sleep(time.Second * time.Duration(mutationWait))
 
-			body := retrieveApiResult(&nbiClient, apiUrl, username, password, fmt.Sprintf(GqlMutationQuery, deviceIp))
+			body := retrieveAPIResult(&nbiClient, apiURL, username, password, fmt.Sprintf(gqlMutationQuery, deviceIP))
 
-			mutation := MutationMessage{}
+			mutation := mutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
 			if jsonErr != nil {
 				stdErr.Println(jsonErr)
@@ -239,10 +242,10 @@ func main() {
 			}
 
 			if mutation.Data.Network.RediscoverDevices.Status == "SUCCESS" {
-				stdOut.Printf("Successfully triggered rediscover for %s.\n", deviceIp)
-				rediscoveredDevices = append(rediscoveredDevices, deviceIp)
+				stdOut.Printf("Successfully triggered rediscover for %s.\n", deviceIP)
+				rediscoveredDevices = append(rediscoveredDevices, deviceIP)
 			} else {
-				stdErr.Printf("Rediscover for %s failed: %s\n", deviceIp, mutation.Data.Network.RediscoverDevices.Message)
+				stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 			}
 		}
 	} else {
@@ -257,11 +260,11 @@ func main() {
 		}
 	}
 
-	queryResults := []ResultSet{}
-	for _, deviceIp := range rediscoveredDevices {
-		body := retrieveApiResult(&nbiClient, apiUrl, username, password, fmt.Sprintf(GqlDeviceDataQuery, deviceIp, deviceIp))
+	queryResults := []resultSet{}
+	for _, deviceIP := range rediscoveredDevices {
+		body := retrieveAPIResult(&nbiClient, apiURL, username, password, fmt.Sprintf(gqldeviceDataQuery, deviceIP, deviceIP))
 
-		jsonData := DeviceData{}
+		jsonData := deviceData{}
 		jsonErr := json.Unmarshal(body, &jsonData)
 		if jsonErr != nil {
 			stdErr.Println(jsonErr)
@@ -274,7 +277,7 @@ func main() {
 
 		stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.", device.IP, len(vlans), len(ports))
 
-		systemResult := ResultSet{}
+		systemResult := resultSet{}
 		systemResult.ID = device.ID
 		systemResult.BaseMac = device.BaseMac
 		systemResult.IP = device.IP
@@ -288,7 +291,7 @@ func main() {
 		queryResults = append(queryResults, systemResult)
 
 		for _, port := range ports {
-			portResult := ResultSet{}
+			portResult := resultSet{}
 			portResult.ID = device.ID
 			portResult.BaseMac = device.BaseMac
 			portResult.IP = device.IP
