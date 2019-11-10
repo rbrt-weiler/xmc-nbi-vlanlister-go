@@ -6,7 +6,7 @@ Generates a CSV file that lists all VLANs that are configured on all up switches
 
 `go build VlanLister.go`
 
-Tested with go1.13.
+Tested with go1.11 and go1.13.
 
 ## Usage
 
