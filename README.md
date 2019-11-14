@@ -23,23 +23,25 @@ Tested with go1.11 and go1.13.
 
 <pre>
   -host string
-    	XMC Hostname / IP (default "localhost")
+        XMC Hostname / IP (default "localhost")
   -httptimeout uint
-    	Timeout for HTTP(S) connections (default 5)
+        Timeout for HTTP(S) connections (default 5)
   -insecurehttps
-    	Do not validate HTTPS certificates
+        Do not validate HTTPS certificates
   -mutdevices
-    	Mutate (rediscover) devices (default true)
+        Mutate (rediscover) devices (default true)
   -mutpause uint
-    	Minutes to wait after mutating devices (default 15)
+        Minutes to wait after mutating devices (default 15)
   -mutwait uint
-    	Seconds to wait between mutations (default 5)
+        Seconds to wait between mutations (default 5)
   -outfile string
-    	File to write CSV data to
+        File to write CSV data to
   -password string
-    	Password for HTTP auth
+        Password for HTTP auth
   -username string
-    	Username for HTTP auth (default "admin")
+        Username for HTTP auth (default "admin")
+  -version
+        Print version information and exit
 </pre>
 
 ## Source
