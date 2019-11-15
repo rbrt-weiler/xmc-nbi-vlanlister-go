@@ -40,7 +40,7 @@ import (
 )
 
 const toolName string = "BELL XMC NBI VlanLister.go"
-const toolVersion string = "1.2.3"
+const toolVersion string = "1.3.0"
 const httpUserAgent string = toolName + "/" + toolVersion
 const gqldeviceListQuery string = `query {
 	network {
@@ -182,6 +182,7 @@ func main() {
 	var mutationWait uint
 	var mutationPause uint
 	var outfile string
+	var printVersion bool
 
 	flag.StringVar(&host, "host", "localhost", "XMC Hostname / IP")
 	flag.UintVar(&httpTimeout, "httptimeout", 5, "Timeout for HTTP(S) connections")
@@ -192,7 +193,13 @@ func main() {
 	flag.UintVar(&mutationWait, "mutwait", 5, "Seconds to wait between mutations")
 	flag.UintVar(&mutationPause, "mutpause", 15, "Minutes to wait after mutating devices")
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
+	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
 	flag.Parse()
+
+	if printVersion {
+		fmt.Println(httpUserAgent)
+		os.Exit(0)
+	}
 
 	if outfile == "" {
 		stdErr.Fatal("outfile is required.")
