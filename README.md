@@ -28,8 +28,6 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
 <pre>
   -host string
         XMC Hostname / IP (default "localhost")
-  -httptimeout uint
-        Timeout for HTTP(S) connections (default 5)
   -insecurehttps
         Do not validate HTTPS certificates
   -mutdevices
@@ -41,9 +39,11 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
   -outfile string
         File to write CSV data to
   -password string
-        Password for HTTP auth
+        Password for HTTP Basic Auth
+  -timeout uint
+        Timeout for HTTP(S) connections (default 5)
   -username string
-        Username for HTTP auth (default "admin")
+        Username for HTTP Basic Auth (default "admin")
   -version
         Print version information and exit
 </pre>

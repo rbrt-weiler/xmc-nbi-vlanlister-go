@@ -143,7 +143,7 @@ var stdOut = log.New(os.Stdout, "", log.LstdFlags)
 var stdErr = log.New(os.Stderr, "", log.LstdFlags)
 
 func main() {
-	var host string
+	var httpHost string
 	var httpTimeout uint
 	var insecureHTTPS bool
 	var username string
@@ -154,11 +154,11 @@ func main() {
 	var outfile string
 	var printVersion bool
 
-	flag.StringVar(&host, "host", "localhost", "XMC Hostname / IP")
-	flag.UintVar(&httpTimeout, "httptimeout", 5, "Timeout for HTTP(S) connections")
+	flag.StringVar(&httpHost, "host", "localhost", "XMC Hostname / IP")
+	flag.UintVar(&httpTimeout, "timeout", 5, "Timeout for HTTP(S) connections")
 	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
-	flag.StringVar(&username, "username", "admin", "Username for HTTP auth")
-	flag.StringVar(&password, "password", "", "Password for HTTP auth")
+	flag.StringVar(&username, "username", "admin", "Username for HTTP Basic Auth")
+	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
 	flag.BoolVar(&mutateDevices, "mutdevices", true, "Mutate (rediscover) devices")
 	flag.UintVar(&mutationWait, "mutwait", 5, "Seconds to wait between mutations")
 	flag.UintVar(&mutationPause, "mutpause", 15, "Minutes to wait after mutating devices")
@@ -175,7 +175,7 @@ func main() {
 		stdErr.Fatal("outfile is required.")
 	}
 
-	client := xmcnbiclient.New(host)
+	client := xmcnbiclient.New(httpHost)
 	client.SetUserAgent(httpUserAgent)
 	client.UseBasicAuth(username, password)
 	if insecureHTTPS {
