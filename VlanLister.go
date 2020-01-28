@@ -145,6 +145,7 @@ var stdErr = log.New(os.Stderr, "", log.LstdFlags)
 func main() {
 	var httpHost string
 	var httpTimeout uint
+	var noHTTPS bool
 	var insecureHTTPS bool
 	var username string
 	var password string
@@ -158,6 +159,7 @@ func main() {
 
 	flag.StringVar(&httpHost, "host", "localhost", "XMC Hostname / IP")
 	flag.UintVar(&httpTimeout, "timeout", 5, "Timeout for HTTP(S) connections")
+	flag.BoolVar(&noHTTPS, "nohttps", false, "Use HTTP instead of HTTPS")
 	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
 	flag.StringVar(&username, "username", "admin", "Username for HTTP Basic Auth")
 	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
@@ -181,6 +183,10 @@ func main() {
 
 	client := xmcnbiclient.New(httpHost)
 	client.SetUserAgent(httpUserAgent)
+	client.UseHTTPS()
+	if noHTTPS {
+		client.UseHTTP()
+	}
 	client.UseBasicAuth(username, password)
 	if clientID != "" && clientSecret != "" {
 		client.UseOAuth(clientID, clientSecret)

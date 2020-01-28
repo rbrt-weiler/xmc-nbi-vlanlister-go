@@ -34,6 +34,8 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
     	XMC Hostname / IP (default "localhost")
   -insecurehttps
     	Do not validate HTTPS certificates
+  -nohttps
+    	Use HTTP instead of HTTPS
   -operationwait uint
     	Minutes to wait after refreshing devices (default 15)
   -outfile string
