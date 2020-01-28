@@ -211,14 +211,14 @@ func main() {
 	}
 	timeoutErr := client.SetTimeout(httpTimeout)
 	if timeoutErr != nil {
-		stdErr.Fatalf("Could not set HTTP timeout: %s", timeoutErr)
+		stdErr.Fatalf("Could not set HTTP timeout: %s\n", timeoutErr)
 	}
 
 	stdOut.Println("Discovering active devices...")
 
 	body, bodyErr := client.QueryAPI(gqldeviceListQuery)
 	if bodyErr != nil {
-		stdErr.Fatalf("Could not fetch device list: %s", bodyErr)
+		stdErr.Fatalf("Could not fetch device list: %s\n", bodyErr)
 	}
 
 	devices := deviceList{}
@@ -239,12 +239,9 @@ func main() {
 	var rediscoveredDevices []string
 	if refreshDevices {
 		for _, deviceIP := range upDevices {
-			stdOut.Printf("Waiting for %d second(s)...\n", refreshPause)
-			time.Sleep(time.Second * time.Duration(refreshPause))
-
 			body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
 			if bodyErr != nil {
-				stdErr.Printf("Could not mutate device %s: %s", deviceIP, bodyErr)
+				stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
 				continue
 			}
 
@@ -261,6 +258,9 @@ func main() {
 			} else {
 				stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 			}
+
+			stdOut.Printf("Waiting for %d second(s)...\n", refreshPause)
+			time.Sleep(time.Second * time.Duration(refreshPause))
 		}
 	} else {
 		rediscoveredDevices = upDevices
@@ -278,14 +278,14 @@ func main() {
 	for _, deviceIP := range rediscoveredDevices {
 		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqldeviceDataQuery, deviceIP, deviceIP))
 		if bodyErr != nil {
-			stdErr.Printf("Could not query device %s: %s", deviceIP, bodyErr)
+			stdErr.Printf("Could not query device %s: %s\n", deviceIP, bodyErr)
 			continue
 		}
 
 		jsonData := deviceData{}
 		jsonErr := json.Unmarshal(body, &jsonData)
 		if jsonErr != nil {
-			stdErr.Println(jsonErr)
+			stdErr.Printf("Could not decode JSON: %s\n", jsonErr)
 			continue
 		}
 
@@ -293,7 +293,7 @@ func main() {
 		vlans := jsonData.Data.Network.DeviceVlans
 		ports := jsonData.Data.Network.Device.EntityData.AllPorts
 
-		stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.", device.IP, len(vlans), len(ports))
+		stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
 
 		systemResult := resultSet{}
 		systemResult.ID = device.ID
@@ -330,17 +330,17 @@ func main() {
 
 	fileHandle, fileErr := os.Create(outfile)
 	if fileErr != nil {
-		stdErr.Fatalf("Could not write outfile: %s", fileErr)
+		stdErr.Fatalf("Could not write outfile: %s\n", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
 	_, writeErr := fileWriter.WriteString("ID,BaseMac,IP,SysName,SysLocation,IfName,IfStatus,Untagged,Tagged\n")
 	if writeErr != nil {
-		stdErr.Fatalf("Could not write outfile: %s", writeErr)
+		stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
 	}
 	for _, row := range queryResults {
 		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
 		if writeErr != nil {
-			stdErr.Fatalf("Could not write outfile: %s", writeErr)
+			stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
 		}
 		fileWriter.Flush()
 	}
