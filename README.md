@@ -11,11 +11,15 @@ This project uses two defined branches:
 
 Other branches, for example for developing specific features, may be created and deleted at any time.
 
+## Dependencies
+
+GenericNbiClient uses the [module xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). This module has to be installed with `go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient` or updated with `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient` before running or compiling GenericNbiClient. All other dependencies are included in a standard Go installation.
+
 ## Compiling
 
 Use `go run VlanLister.go` to run the tool directly or `go build VlanLister.go` to compile a binary.
 
-Tested with go1.11 and go1.13.
+Tested with [go1.13](https://golang.org/doc/go1.13).
 
 ## Usage
 

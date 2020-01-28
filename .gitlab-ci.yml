@@ -1,14 +1,17 @@
-image: golang:1.11
+image: golang:1.13
 
 stages:
   - build
+
+before_script:
+  - mkdir -p binaries
+  - go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient
 
 build-win64-executable:
   stage: build
   only:
     - stable
   script:
-    - mkdir binaries
     - GOOS=windows GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH.exe VlanLister.go
 
 build-linux64-executable:
@@ -16,7 +19,6 @@ build-linux64-executable:
   only:
     - stable
   script:
-    - mkdir binaries
     - GOOS=linux GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH VlanLister.go
 
 build-darwin64-executable:
@@ -24,6 +26,4 @@ build-darwin64-executable:
   only:
     - stable
   script:
-    - mkdir binaries
     - GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH VlanLister.go
-

@@ -1,6 +1,6 @@
 /*
-Copyright (c) 2019 BELL Computer-Netzwerke GmbH
-Copyright (c) 2019 Robert Weiler
+Copyright (c) 2019,2020 Robert Weiler <https://robert.weiler.one/>
+Copyright (c) 2019 BELL Computer-Netzwerke GmbH <https://www.bell.de/>
 
 Permission is hereby granted, free of charge, to any person obtaining a copy
 of this software and associated documentation files (the "Software"), to deal
@@ -25,22 +25,21 @@ package main
 
 import (
 	"bufio"
-	"crypto/tls"
 	"encoding/json"
 	"flag"
 	"fmt"
-	"io/ioutil"
 	"log"
-	"net/http"
 	"os"
 	"sort"
 	"strconv"
 	"strings"
 	"time"
+
+	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
 
 const toolName string = "BELL XMC NBI VlanLister.go"
-const toolVersion string = "1.3.0"
+const toolVersion string = "2.0.0-dev"
 const httpUserAgent string = toolName + "/" + toolVersion
 const gqldeviceListQuery string = `query {
 	network {
@@ -143,35 +142,6 @@ type resultSet struct {
 var stdOut = log.New(os.Stdout, "", log.LstdFlags)
 var stdErr = log.New(os.Stderr, "", log.LstdFlags)
 
-func retrieveAPIResult(httpClient *http.Client, apiURL string, username string, password string, queryString string) []byte {
-	req, err := http.NewRequest(http.MethodGet, apiURL, nil)
-	if err != nil {
-		stdOut.Fatal(err)
-	}
-
-	req.Header.Set("User-Agent", httpUserAgent)
-	req.SetBasicAuth(username, password)
-
-	httpQuery := req.URL.Query()
-	httpQuery.Add("query", queryString)
-	req.URL.RawQuery = httpQuery.Encode()
-
-	res, getErr := httpClient.Do(req)
-	if getErr != nil {
-		stdOut.Fatal(getErr)
-	}
-	if res.StatusCode != http.StatusOK {
-		stdOut.Fatalf("Error: %s\n", res.Status)
-	}
-
-	body, readErr := ioutil.ReadAll(res.Body)
-	if readErr != nil {
-		stdOut.Fatal(readErr)
-	}
-
-	return body
-}
-
 func main() {
 	var host string
 	var httpTimeout uint
@@ -205,18 +175,23 @@ func main() {
 		stdErr.Fatal("outfile is required.")
 	}
 
+	client := xmcnbiclient.New(host)
+	client.SetUserAgent(httpUserAgent)
+	client.UseBasicAuth(username, password)
+	if insecureHTTPS {
+		client.UseInsecureHTTPS()
+	}
+	timeoutErr := client.SetTimeout(httpTimeout)
+	if timeoutErr != nil {
+		stdErr.Fatalf("Could not set HTTP timeout: %s", timeoutErr)
+	}
+
 	stdOut.Println("Discovering active devices...")
 
-	var apiURL string = "https://" + host + ":8443/nbi/graphql"
-	httpTransport := &http.Transport{
-		TLSClientConfig: &tls.Config{InsecureSkipVerify: insecureHTTPS},
+	body, bodyErr := client.QueryAPI(gqldeviceListQuery)
+	if bodyErr != nil {
+		stdErr.Fatalf("Could not fetch device list: %s", bodyErr)
 	}
-	nbiClient := http.Client{
-		Transport: httpTransport,
-		Timeout:   time.Second * time.Duration(httpTimeout),
-	}
-
-	body := retrieveAPIResult(&nbiClient, apiURL, username, password, gqldeviceListQuery)
 
 	devices := deviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
@@ -236,10 +211,14 @@ func main() {
 	var rediscoveredDevices []string
 	if mutateDevices {
 		for _, deviceIP := range upDevices {
-			stdOut.Printf("Waiting for %d seconds...\n", mutationWait)
+			stdOut.Printf("Waiting for %d second(s)...\n", mutationWait)
 			time.Sleep(time.Second * time.Duration(mutationWait))
 
-			body := retrieveAPIResult(&nbiClient, apiURL, username, password, fmt.Sprintf(gqlMutationQuery, deviceIP))
+			body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
+			if bodyErr != nil {
+				stdErr.Printf("Could not mutate device %s: %s", deviceIP, bodyErr)
+				continue
+			}
 
 			mutation := mutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
@@ -262,14 +241,18 @@ func main() {
 
 	if mutateDevices {
 		for i := mutationPause; i > 0; i-- {
-			stdOut.Printf("Waiting for %d minutes to finish rediscover...\n", i)
+			stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 			time.Sleep(time.Minute * time.Duration(1))
 		}
 	}
 
 	queryResults := []resultSet{}
 	for _, deviceIP := range rediscoveredDevices {
-		body := retrieveAPIResult(&nbiClient, apiURL, username, password, fmt.Sprintf(gqldeviceDataQuery, deviceIP, deviceIP))
+		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqldeviceDataQuery, deviceIP, deviceIP))
+		if bodyErr != nil {
+			stdErr.Printf("Could not query device %s: %s", deviceIP, bodyErr)
+			continue
+		}
 
 		jsonData := deviceData{}
 		jsonErr := json.Unmarshal(body, &jsonData)
