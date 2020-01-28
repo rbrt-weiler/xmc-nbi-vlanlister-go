@@ -27,29 +27,29 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
 
 <pre>
   -clientid string
-        Client ID for OAuth
+    	Client ID for OAuth
   -clientsecret string
-        Client Secret for OAuth
+    	Client Secret for OAuth
   -host string
-        XMC Hostname / IP (default "localhost")
+    	XMC Hostname / IP (default "localhost")
   -insecurehttps
-        Do not validate HTTPS certificates
-  -mutdevices
-        Mutate (rediscover) devices (default true)
-  -mutpause uint
-        Minutes to wait after mutating devices (default 15)
-  -mutwait uint
-        Seconds to wait between mutations (default 5)
+    	Do not validate HTTPS certificates
+  -operationwait uint
+    	Minutes to wait after refreshing devices (default 15)
   -outfile string
-        File to write CSV data to
+    	File to write CSV data to
   -password string
-        Password for HTTP Basic Auth
+    	Password for HTTP Basic Auth
+  -refreshdevices
+    	Refresh (rediscover) devices - recommended (default true)
+  -refreshwait uint
+    	Seconds to wait between triggering each refresh (default 5)
   -timeout uint
-        Timeout for HTTP(S) connections (default 5)
+    	Timeout for HTTP(S) connections (default 5)
   -username string
-        Username for HTTP Basic Auth (default "admin")
+    	Username for HTTP Basic Auth (default "admin")
   -version
-        Print version information and exit
+    	Print version information and exit
 </pre>
 
 ## Source

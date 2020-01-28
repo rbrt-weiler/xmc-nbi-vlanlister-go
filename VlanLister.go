@@ -150,9 +150,9 @@ func main() {
 	var password string
 	var clientID string
 	var clientSecret string
-	var mutateDevices bool
-	var mutationWait uint
-	var mutationPause uint
+	var refreshDevices bool
+	var refreshPause uint
+	var operationPause uint
 	var outfile string
 	var printVersion bool
 
@@ -163,9 +163,9 @@ func main() {
 	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
 	flag.StringVar(&clientID, "clientid", "", "Client ID for OAuth")
 	flag.StringVar(&clientSecret, "clientsecret", "", "Client Secret for OAuth")
-	flag.BoolVar(&mutateDevices, "mutdevices", true, "Mutate (rediscover) devices")
-	flag.UintVar(&mutationWait, "mutwait", 5, "Seconds to wait between mutations")
-	flag.UintVar(&mutationPause, "mutpause", 15, "Minutes to wait after mutating devices")
+	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices - recommended")
+	flag.UintVar(&refreshPause, "refreshwait", 5, "Seconds to wait between triggering each refresh")
+	flag.UintVar(&operationPause, "operationwait", 15, "Minutes to wait after refreshing devices")
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
 	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
 	flag.Parse()
@@ -216,10 +216,10 @@ func main() {
 	stdOut.Println("Finished discovering active devices.")
 
 	var rediscoveredDevices []string
-	if mutateDevices {
+	if refreshDevices {
 		for _, deviceIP := range upDevices {
-			stdOut.Printf("Waiting for %d second(s)...\n", mutationWait)
-			time.Sleep(time.Second * time.Duration(mutationWait))
+			stdOut.Printf("Waiting for %d second(s)...\n", refreshPause)
+			time.Sleep(time.Second * time.Duration(refreshPause))
 
 			body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
 			if bodyErr != nil {
@@ -246,8 +246,8 @@ func main() {
 	}
 	sort.Strings(rediscoveredDevices)
 
-	if mutateDevices {
-		for i := mutationPause; i > 0; i-- {
+	if refreshDevices {
+		for i := operationPause; i > 0; i-- {
 			stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 			time.Sleep(time.Minute * time.Duration(1))
 		}
