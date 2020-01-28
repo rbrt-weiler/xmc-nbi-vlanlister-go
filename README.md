@@ -26,6 +26,10 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
 `VlanLister -h`:
 
 <pre>
+  -clientid string
+        Client ID for OAuth
+  -clientsecret string
+        Client Secret for OAuth
   -host string
         XMC Hostname / IP (default "localhost")
   -insecurehttps

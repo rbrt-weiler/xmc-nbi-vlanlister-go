@@ -148,6 +148,8 @@ func main() {
 	var insecureHTTPS bool
 	var username string
 	var password string
+	var clientID string
+	var clientSecret string
 	var mutateDevices bool
 	var mutationWait uint
 	var mutationPause uint
@@ -159,6 +161,8 @@ func main() {
 	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
 	flag.StringVar(&username, "username", "admin", "Username for HTTP Basic Auth")
 	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
+	flag.StringVar(&clientID, "clientid", "", "Client ID for OAuth")
+	flag.StringVar(&clientSecret, "clientsecret", "", "Client Secret for OAuth")
 	flag.BoolVar(&mutateDevices, "mutdevices", true, "Mutate (rediscover) devices")
 	flag.UintVar(&mutationWait, "mutwait", 5, "Seconds to wait between mutations")
 	flag.UintVar(&mutationPause, "mutpause", 15, "Minutes to wait after mutating devices")
@@ -178,6 +182,9 @@ func main() {
 	client := xmcnbiclient.New(httpHost)
 	client.SetUserAgent(httpUserAgent)
 	client.UseBasicAuth(username, password)
+	if clientID != "" && clientSecret != "" {
+		client.UseOAuth(clientID, clientSecret)
+	}
 	if insecureHTTPS {
 		client.UseInsecureHTTPS()
 	}
