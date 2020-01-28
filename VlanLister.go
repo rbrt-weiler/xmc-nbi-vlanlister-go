@@ -30,6 +30,7 @@ import (
 	"fmt"
 	"log"
 	"os"
+	"path"
 	"sort"
 	"strconv"
 	"strings"
@@ -38,7 +39,7 @@ import (
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
 
-const toolName string = "BELL XMC NBI VlanLister.go"
+const toolName string = "VlanLister.go"
 const toolVersion string = "2.0.0-dev"
 const httpUserAgent string = toolName + "/" + toolVersion
 const gqldeviceListQuery string = `query {
@@ -165,11 +166,25 @@ func main() {
 	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
 	flag.StringVar(&clientID, "clientid", "", "Client ID for OAuth")
 	flag.StringVar(&clientSecret, "clientsecret", "", "Client Secret for OAuth")
-	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices - recommended")
+	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
 	flag.UintVar(&refreshPause, "refreshwait", 5, "Seconds to wait between triggering each refresh")
 	flag.UintVar(&operationPause, "operationwait", 15, "Minutes to wait after refreshing devices")
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
 	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
+	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
+		fmt.Fprintf(os.Stderr, "retrieves a list of all VLANs and VLAN to port associations, which is\n")
+		fmt.Fprintf(os.Stderr, "written to outfile.\n")
+		fmt.Fprintf(os.Stderr, "Optionally (but recommended), all found devices are refreshed before\n")
+		fmt.Fprintf(os.Stderr, "retrieving the VLAN data.\n")
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", path.Base(os.Args[0]))
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "Available options:\n")
+		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "OAuth will be preferred over username/password.\n")
+	}
 	flag.Parse()
 
 	if printVersion {

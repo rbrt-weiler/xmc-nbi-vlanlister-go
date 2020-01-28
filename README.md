@@ -1,6 +1,6 @@
 # XMC NBI VlanLister (Go)
 
-VlanLister uses the GraphQL-based API provided by the Northbound Interface (NBI) of [Extreme Management Center (XMC)](https://www.extremenetworks.com/product/extreme-management-center/) to generate a CSV file that lists all VLANs that are configured on all up switches along with port associations. The tool is intended to be used during audits and for general network documentation.
+VlanLister uses the GraphQL-based API provided by the Northbound Interface (NBI) of [Extreme Management Center](https://www.extremenetworks.com/product/extreme-management-center/) (XMC; formerly known as NetSight) to generate a CSV file that lists all VLANs that are configured on all up switches along with port associations. The tool is intended to be used during audits and for general network documentation.
 
 ## Branches
 
@@ -13,7 +13,7 @@ Other branches, for example for developing specific features, may be created and
 
 ## Dependencies
 
-GenericNbiClient uses the [module xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). This module has to be installed with `go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient` or updated with `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient` before running or compiling GenericNbiClient. All other dependencies are included in a standard Go installation.
+VlanLister uses the [module xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). This module has to be installed with `go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient` or updated with `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient` before running or compiling VlanLister. All other dependencies are included in a standard Go installation.
 
 ## Compiling
 
@@ -43,7 +43,7 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
   -password string
     	Password for HTTP Basic Auth
   -refreshdevices
-    	Refresh (rediscover) devices - recommended (default true)
+    	Refresh (rediscover) devices (default true)
   -refreshwait uint
     	Seconds to wait between triggering each refresh (default 5)
   -timeout uint
