@@ -340,8 +340,17 @@ func main() {
 		if writeErr != nil {
 			stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
 		}
-		fileWriter.Flush()
+		flushErr := fileWriter.Flush()
+		if flushErr != nil {
+			stdErr.Printf("Could not flush file buffer: %s\n", flushErr)
+		}
 	}
-	fileHandle.Sync()
-	fileHandle.Close()
+	syncErr := fileHandle.Sync()
+	if syncErr != nil {
+		stdErr.Printf("Could not sync file handle: %s\n", syncErr)
+	}
+	fhErr := fileHandle.Close()
+	if fhErr != nil {
+		stdErr.Printf("Could not close file handle: %s\n", fhErr)
+	}
 }
