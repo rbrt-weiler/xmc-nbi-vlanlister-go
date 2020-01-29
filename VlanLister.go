@@ -42,7 +42,7 @@ import (
 const toolName string = "VlanLister.go"
 const toolVersion string = "2.0.0-dev"
 const httpUserAgent string = toolName + "/" + toolVersion
-const gqldeviceListQuery string = `query {
+const gqlDeviceListQuery string = `query {
 	network {
 	  devices {
 		up
@@ -58,7 +58,7 @@ const gqlMutationQuery string = `mutation {
 	  }
 	}
   }`
-const gqldeviceDataQuery string = `query {
+const gqlDeviceDataQuery string = `query {
 	network {
 	  device(ip: "%s") {
 		id
@@ -153,8 +153,8 @@ func main() {
 	var clientID string
 	var clientSecret string
 	var refreshDevices bool
-	var refreshPause uint
-	var operationPause uint
+	var refreshWaitSecs uint
+	var operationWaitMins uint
 	var outfile string
 	var printVersion bool
 
@@ -167,8 +167,8 @@ func main() {
 	flag.StringVar(&clientID, "clientid", "", "Client ID for OAuth")
 	flag.StringVar(&clientSecret, "clientsecret", "", "Client Secret for OAuth")
 	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
-	flag.UintVar(&refreshPause, "refreshwait", 5, "Seconds to wait between triggering each refresh")
-	flag.UintVar(&operationPause, "operationwait", 15, "Minutes to wait after refreshing devices")
+	flag.UintVar(&refreshWaitSecs, "refreshwait", 5, "Seconds to wait between triggering each refresh")
+	flag.UintVar(&operationWaitMins, "operationwait", 15, "Minutes to wait after refreshing devices")
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
 	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
@@ -206,6 +206,7 @@ func main() {
 	if clientID != "" && clientSecret != "" {
 		client.UseOAuth(clientID, clientSecret)
 	}
+	client.UseSecureHTTPS()
 	if insecureHTTPS {
 		client.UseInsecureHTTPS()
 	}
@@ -216,7 +217,7 @@ func main() {
 
 	stdOut.Println("Discovering active devices...")
 
-	body, bodyErr := client.QueryAPI(gqldeviceListQuery)
+	body, bodyErr := client.QueryAPI(gqlDeviceListQuery)
 	if bodyErr != nil {
 		stdErr.Fatalf("Could not fetch device list: %s\n", bodyErr)
 	}
@@ -224,7 +225,7 @@ func main() {
 	devices := deviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
 	if jsonErr != nil {
-		stdOut.Fatal(jsonErr)
+		stdOut.Fatalf("Could not decode JSON: %s\n", jsonErr)
 	}
 
 	var upDevices []string
@@ -248,7 +249,7 @@ func main() {
 			mutation := mutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
 			if jsonErr != nil {
-				stdErr.Println(jsonErr)
+				stdErr.Printf("Could not decode JSON: %s\n", jsonErr)
 				continue
 			}
 
@@ -259,24 +260,21 @@ func main() {
 				stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 			}
 
-			stdOut.Printf("Waiting for %d second(s)...\n", refreshPause)
-			time.Sleep(time.Second * time.Duration(refreshPause))
+			stdOut.Printf("Waiting for %d second(s)...\n", refreshWaitSecs)
+			time.Sleep(time.Second * time.Duration(refreshWaitSecs))
+		}
+		for i := operationWaitMins; i > 0; i-- {
+			stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
+			time.Sleep(time.Minute * time.Duration(1))
 		}
 	} else {
 		rediscoveredDevices = upDevices
 	}
 	sort.Strings(rediscoveredDevices)
 
-	if refreshDevices {
-		for i := operationPause; i > 0; i-- {
-			stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
-			time.Sleep(time.Minute * time.Duration(1))
-		}
-	}
-
 	queryResults := []resultSet{}
 	for _, deviceIP := range rediscoveredDevices {
-		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqldeviceDataQuery, deviceIP, deviceIP))
+		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
 		if bodyErr != nil {
 			stdErr.Printf("Could not query device %s: %s\n", deviceIP, bodyErr)
 			continue
