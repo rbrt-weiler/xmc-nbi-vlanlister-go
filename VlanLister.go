@@ -145,7 +145,7 @@ var stdErr = log.New(os.Stderr, "", log.LstdFlags)
 
 func main() {
 	var httpHost string
-	var httpTimeout uint
+	var httpTimeoutSecs uint
 	var noHTTPS bool
 	var insecureHTTPS bool
 	var username string
@@ -159,7 +159,7 @@ func main() {
 	var printVersion bool
 
 	flag.StringVar(&httpHost, "host", "localhost", "XMC Hostname / IP")
-	flag.UintVar(&httpTimeout, "timeout", 5, "Timeout for HTTP(S) connections")
+	flag.UintVar(&httpTimeoutSecs, "timeout", 5, "Timeout for HTTP(S) connections")
 	flag.BoolVar(&noHTTPS, "nohttps", false, "Use HTTP instead of HTTPS")
 	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
 	flag.StringVar(&username, "username", "admin", "Username for HTTP Basic Auth")
@@ -210,7 +210,7 @@ func main() {
 	if insecureHTTPS {
 		client.UseInsecureHTTPS()
 	}
-	timeoutErr := client.SetTimeout(httpTimeout)
+	timeoutErr := client.SetTimeout(httpTimeoutSecs)
 	if timeoutErr != nil {
 		stdErr.Fatalf("Could not set HTTP timeout: %s\n", timeoutErr)
 	}
