@@ -6,8 +6,8 @@ VlanLister uses the GraphQL-based API provided by the Northbound Interface (NBI)
 
 This project uses two defined branches:
 
-  * `master` is the primary development branch. Code within `master` may be broken at any time.
-  * `stable` is reserved for code that compiles without errors and is tested. Track `stable` if you just want to use the software.
+* `master` is the primary development branch. Code within `master` may be broken at any time.
+* `stable` is reserved for code that compiles without errors and is tested. Track `stable` if you just want to use the software.
 
 Other branches, for example for developing specific features, may be created and deleted at any time.
 
@@ -26,32 +26,37 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
 `VlanLister -h`:
 
 <pre>
+Available options:
   -clientid string
-    	Client ID for OAuth
+        Client ID for OAuth
   -clientsecret string
-    	Client Secret for OAuth
+        Client Secret for OAuth
   -host string
-    	XMC Hostname / IP (default "localhost")
+        XMC Hostname / IP (default "localhost")
+  -includedown
+        Include inactive devices in result
   -insecurehttps
-    	Do not validate HTTPS certificates
+        Do not validate HTTPS certificates
   -nohttps
-    	Use HTTP instead of HTTPS
+        Use HTTP instead of HTTPS
   -operationwait uint
-    	Minutes to wait after refreshing devices (default 15)
+        Minutes to wait after refreshing devices (default 15)
   -outfile string
-    	File to write CSV data to
+        File to write CSV data to
   -password string
-    	Password for HTTP Basic Auth
+        Password for HTTP Basic Auth
   -refreshdevices
-    	Refresh (rediscover) devices (default true)
+        Refresh (rediscover) devices (default true)
   -refreshwait uint
-    	Seconds to wait between triggering each refresh (default 5)
+        Seconds to wait between triggering each refresh (default 5)
   -timeout uint
-    	Timeout for HTTP(S) connections (default 5)
+        Timeout for HTTP(S) connections (default 5)
   -username string
-    	Username for HTTP Basic Auth (default "admin")
+        Username for HTTP Basic Auth (default "admin")
   -version
-    	Print version information and exit
+        Print version information and exit
+
+OAuth will be preferred over username/password.
 </pre>
 
 ## Source

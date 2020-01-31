@@ -62,6 +62,7 @@ const gqlDeviceDataQuery string = `query {
 	network {
 	  device(ip: "%s") {
 		id
+		up
 		sysName
 		sysLocation
 		nickName
@@ -108,6 +109,7 @@ type deviceData struct {
 		Network struct {
 			Device struct {
 				ID          int    `json:"id"`
+				Up          bool   `json:"up"`
 				SysName     string `json:"sysName"`
 				SysLocation string `json:"sysLocation"`
 				NickName    string `json:"nickName"`
@@ -132,6 +134,7 @@ type resultSet struct {
 	ID          int
 	BaseMac     string
 	IP          string
+	SysUpDown   string
 	SysName     string
 	SysLocation string
 	IfName      string
@@ -155,6 +158,7 @@ func main() {
 	var refreshDevices bool
 	var refreshWaitSecs uint
 	var operationWaitMins uint
+	var includeDown bool
 	var outfile string
 	var printVersion bool
 
@@ -169,6 +173,7 @@ func main() {
 	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
 	flag.UintVar(&refreshWaitSecs, "refreshwait", 5, "Seconds to wait between triggering each refresh")
 	flag.UintVar(&operationWaitMins, "operationwait", 15, "Minutes to wait after refreshing devices")
+	flag.BoolVar(&includeDown, "includedown", false, "Include inactive devices in result")
 	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
 	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
@@ -229,9 +234,12 @@ func main() {
 	}
 
 	var upDevices []string
+	var downDevices []string
 	for _, d := range devices.Data.Network.Devices {
 		if d.Up {
 			upDevices = append(upDevices, d.IP)
+		} else {
+			downDevices = append(downDevices, d.IP)
 		}
 	}
 	sort.Strings(upDevices)
@@ -270,6 +278,9 @@ func main() {
 	} else {
 		rediscoveredDevices = upDevices
 	}
+	if includeDown {
+		rediscoveredDevices = append(rediscoveredDevices, downDevices...)
+	}
 	sort.Strings(rediscoveredDevices)
 
 	queryResults := []resultSet{}
@@ -297,6 +308,10 @@ func main() {
 		systemResult.ID = device.ID
 		systemResult.BaseMac = device.BaseMac
 		systemResult.IP = device.IP
+		systemResult.SysUpDown = "down"
+		if device.Up {
+			systemResult.SysUpDown = "up"
+		}
 		systemResult.SysName = device.SysName
 		systemResult.SysLocation = device.SysLocation
 		systemResult.IfName = "SYSTEM"
@@ -311,6 +326,10 @@ func main() {
 			portResult.ID = device.ID
 			portResult.BaseMac = device.BaseMac
 			portResult.IP = device.IP
+			portResult.SysUpDown = "down"
+			if device.Up {
+				portResult.SysUpDown = "up"
+			}
 			portResult.SysName = device.SysName
 			portResult.SysLocation = device.SysLocation
 			portResult.IfName = port.IfName
@@ -331,12 +350,12 @@ func main() {
 		stdErr.Fatalf("Could not write outfile: %s\n", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
-	_, writeErr := fileWriter.WriteString("ID,BaseMac,IP,SysName,SysLocation,IfName,IfStatus,Untagged,Tagged\n")
+	_, writeErr := fileWriter.WriteString("ID,BaseMac,IP,SysUpDown,SysName,SysLocation,IfName,IfStatus,Untagged,Tagged\n")
 	if writeErr != nil {
 		stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
 	}
 	for _, row := range queryResults {
-		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
+		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysUpDown, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
 		if writeErr != nil {
 			stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
 		}
