@@ -253,6 +253,11 @@ func main() {
 				stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
 				continue
 			}
+			if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
+				if client.AccessToken.ExpiresSoon(httpTimeoutSecs) {
+					go client.RetrieveOAuthToken()
+				}
+			}
 
 			mutation := mutationMessage{}
 			jsonErr := json.Unmarshal(body, &mutation)
@@ -289,6 +294,11 @@ func main() {
 		if bodyErr != nil {
 			stdErr.Printf("Could not query device %s: %s\n", deviceIP, bodyErr)
 			continue
+		}
+		if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
+			if client.AccessToken.ExpiresSoon(httpTimeoutSecs) {
+				go client.RetrieveOAuthToken()
+			}
 		}
 
 		jsonData := deviceData{}
