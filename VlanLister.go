@@ -254,7 +254,7 @@ func main() {
 				continue
 			}
 			if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-				if client.AccessToken.ExpiresSoon(httpTimeoutSecs) {
+				if client.AccessToken.ExpiresSoon(httpTimeoutSecs + 1) {
 					go client.RetrieveOAuthToken()
 				}
 			}
@@ -296,7 +296,7 @@ func main() {
 			continue
 		}
 		if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-			if client.AccessToken.ExpiresSoon(httpTimeoutSecs) {
+			if client.AccessToken.ExpiresSoon(httpTimeoutSecs + 1) {
 				go client.RetrieveOAuthToken()
 			}
 		}
