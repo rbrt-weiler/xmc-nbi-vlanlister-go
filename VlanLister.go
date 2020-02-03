@@ -23,6 +23,16 @@ SOFTWARE.
 
 package main
 
+/*
+#### ##     ## ########   #######  ########  ########  ######
+ ##  ###   ### ##     ## ##     ## ##     ##    ##    ##    ##
+ ##  #### #### ##     ## ##     ## ##     ##    ##    ##
+ ##  ## ### ## ########  ##     ## ########     ##     ######
+ ##  ##     ## ##        ##     ## ##   ##      ##          ##
+ ##  ##     ## ##        ##     ## ##    ##     ##    ##    ##
+#### ##     ## ##         #######  ##     ##    ##     ######
+*/
+
 import (
 	"bufio"
 	"encoding/json"
@@ -39,51 +49,97 @@ import (
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
 
-const toolName string = "VlanLister.go"
-const toolVersion string = "2.0.0-dev"
-const httpUserAgent string = toolName + "/" + toolVersion
-const gqlDeviceListQuery string = `query {
-	network {
-	  devices {
-		up
-		ip
-	  }
-	}
-  }`
-const gqlMutationQuery string = `mutation {
-	network {
-	  rediscoverDevices(input: {devices: [{ipAddress: "%s"}]}) {
-		status
-		message
-	  }
-	}
-  }`
-const gqlDeviceDataQuery string = `query {
-	network {
-	  device(ip: "%s") {
-		id
-		up
-		sysName
-		sysLocation
-		nickName
-		baseMac
-		ip
-		entityData {
-		  allPorts {
-			ifIndex
-			ifName
-			ifOperStatus
-			vlanList
-		  }
-		}
-	  }
-	  deviceVlans(ip: "%s") {
-		vid
-	  }
-	}
-  }`
+/*
+ ######   #######  ##    ##  ######  ########    ###    ##    ## ########  ######
+##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    ##    ##
+##       ##     ## ####  ## ##          ##     ##   ##  ####  ##    ##    ##
+##       ##     ## ## ## ##  ######     ##    ##     ## ## ## ##    ##     ######
+##       ##     ## ##  ####       ##    ##    ######### ##  ####    ##          ##
+##    ## ##     ## ##   ### ##    ##    ##    ##     ## ##   ###    ##    ##    ##
+ ######   #######  ##    ##  ######     ##    ##     ## ##    ##    ##     ######
+*/
 
-// created with https://mholt.github.io/json-to-go/
+const (
+	toolName           string = "VlanLister.go"
+	toolVersion        string = "2.0.0-dev"
+	httpUserAgent      string = toolName + "/" + toolVersion
+	gqlDeviceListQuery string = `
+		query {
+			network {
+				devices {
+					up
+					ip
+				}
+			}
+		}
+	`
+	gqlMutationQuery string = `
+		mutation {
+			network {
+				rediscoverDevices(input: {devices: [{ipAddress: "%s"}]}) {
+					status
+					message
+				}
+			}
+		}
+  	`
+	gqlDeviceDataQuery string = `
+		query {
+			network {
+				device(ip: "%s") {
+					id
+					up
+					sysName
+					sysLocation
+					nickName
+					baseMac
+					ip
+					entityData {
+						allPorts {
+							ifIndex
+							ifName
+							ifOperStatus
+							vlanList
+						}
+					}
+				}
+				deviceVlans(ip: "%s") {
+					vid
+				}
+			}
+		}
+	`
+)
+
+/*
+######## ##    ## ########  ########  ######
+   ##     ##  ##  ##     ## ##       ##    ##
+   ##      ####   ##     ## ##       ##
+   ##       ##    ########  ######    ######
+   ##       ##    ##        ##             ##
+   ##       ##    ##        ##       ##    ##
+   ##       ##    ##        ########  ######
+*/
+
+// Stores configuration used throughout the app
+type appConfig struct {
+	httpHost          string
+	httpTimeoutSecs   uint
+	noHTTPS           bool
+	insecureHTTPS     bool
+	username          string
+	password          string
+	clientID          string
+	clientSecret      string
+	refreshDevices    bool
+	refreshWaitSecs   uint
+	operationWaitMins uint
+	includeDown       bool
+	outfile           string
+	printVersion      bool
+}
+
+// Used for parsing the list of devices returned by XMC
 type deviceList struct {
 	Data struct {
 		Network struct {
@@ -94,6 +150,8 @@ type deviceList struct {
 		} `json:"network"`
 	} `json:"data"`
 }
+
+// Used to parse the result of each single mutation (device refresh)
 type mutationMessage struct {
 	Data struct {
 		Network struct {
@@ -104,6 +162,8 @@ type mutationMessage struct {
 		} `json:"network"`
 	} `json:"data"`
 }
+
+// Used to store the result of ports and VLANs for each single device
 type deviceData struct {
 	Data struct {
 		Network struct {
@@ -130,6 +190,8 @@ type deviceData struct {
 		} `json:"network"`
 	} `json:"data"`
 }
+
+// Used to store the values for each row that is written to outfile
 type resultSet struct {
 	ID          int
 	BaseMac     string
@@ -143,39 +205,53 @@ type resultSet struct {
 	Tagged      []string
 }
 
-var stdOut = log.New(os.Stdout, "", log.LstdFlags)
-var stdErr = log.New(os.Stderr, "", log.LstdFlags)
+/*
+##     ##    ###    ########   ######
+##     ##   ## ##   ##     ## ##    ##
+##     ##  ##   ##  ##     ## ##
+##     ## ##     ## ########   ######
+ ##   ##  ######### ##   ##         ##
+  ## ##   ##     ## ##    ##  ##    ##
+   ###    ##     ## ##     ##  ######
+*/
 
-func main() {
-	var httpHost string
-	var httpTimeoutSecs uint
-	var noHTTPS bool
-	var insecureHTTPS bool
-	var username string
-	var password string
-	var clientID string
-	var clientSecret string
-	var refreshDevices bool
-	var refreshWaitSecs uint
-	var operationWaitMins uint
-	var includeDown bool
-	var outfile string
-	var printVersion bool
+var (
+	// The actual client that connects to XMC
+	client xmcnbiclient.NBIClient
+	// The usable instance of app configuration
+	config appConfig
+	// Logging-formatted stdout
+	stdOut = log.New(os.Stdout, "", log.LstdFlags)
+	// Logging-formatted stderr
+	stdErr = log.New(os.Stderr, "", log.LstdFlags)
+)
 
-	flag.StringVar(&httpHost, "host", "localhost", "XMC Hostname / IP")
-	flag.UintVar(&httpTimeoutSecs, "timeout", 5, "Timeout for HTTP(S) connections")
-	flag.BoolVar(&noHTTPS, "nohttps", false, "Use HTTP instead of HTTPS")
-	flag.BoolVar(&insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
-	flag.StringVar(&username, "username", "admin", "Username for HTTP Basic Auth")
-	flag.StringVar(&password, "password", "", "Password for HTTP Basic Auth")
-	flag.StringVar(&clientID, "clientid", "", "Client ID for OAuth")
-	flag.StringVar(&clientSecret, "clientsecret", "", "Client Secret for OAuth")
-	flag.BoolVar(&refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
-	flag.UintVar(&refreshWaitSecs, "refreshwait", 5, "Seconds to wait between triggering each refresh")
-	flag.UintVar(&operationWaitMins, "operationwait", 15, "Minutes to wait after refreshing devices")
-	flag.BoolVar(&includeDown, "includedown", false, "Include inactive devices in result")
-	flag.StringVar(&outfile, "outfile", "", "File to write CSV data to")
-	flag.BoolVar(&printVersion, "version", false, "Print version information and exit")
+/*
+######## ##     ## ##    ##  ######   ######
+##       ##     ## ###   ## ##    ## ##    ##
+##       ##     ## ####  ## ##       ##
+######   ##     ## ## ## ## ##        ######
+##       ##     ## ##  #### ##             ##
+##       ##     ## ##   ### ##    ## ##    ##
+##        #######  ##    ##  ######   ######
+*/
+
+// Parses the CLI options and arguments into app config
+func parseCLIOptions() {
+	flag.StringVar(&config.httpHost, "host", "localhost", "XMC Hostname / IP")
+	flag.UintVar(&config.httpTimeoutSecs, "timeout", 5, "Timeout for HTTP(S) connections")
+	flag.BoolVar(&config.noHTTPS, "nohttps", false, "Use HTTP instead of HTTPS")
+	flag.BoolVar(&config.insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
+	flag.StringVar(&config.username, "username", "admin", "Username for HTTP Basic Auth")
+	flag.StringVar(&config.password, "password", "", "Password for HTTP Basic Auth")
+	flag.StringVar(&config.clientID, "clientid", "", "Client ID for OAuth")
+	flag.StringVar(&config.clientSecret, "clientsecret", "", "Client Secret for OAuth")
+	flag.BoolVar(&config.refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
+	flag.UintVar(&config.refreshWaitSecs, "refreshwait", 5, "Seconds to wait between triggering each refresh")
+	flag.UintVar(&config.operationWaitMins, "operationwait", 15, "Minutes to wait after refreshing devices")
+	flag.BoolVar(&config.includeDown, "includedown", false, "Include inactive devices in result")
+	flag.StringVar(&config.outfile, "outfile", "", "File to write CSV data to")
+	flag.BoolVar(&config.printVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
 		fmt.Fprintf(os.Stderr, "retrieves a list of all VLANs and VLAN to port associations, which is\n")
@@ -191,36 +267,33 @@ func main() {
 		fmt.Fprintf(os.Stderr, "OAuth will be preferred over username/password.\n")
 	}
 	flag.Parse()
+}
 
-	if printVersion {
-		fmt.Println(httpUserAgent)
-		os.Exit(0)
-	}
-
-	if outfile == "" {
-		stdErr.Fatal("outfile is required.")
-	}
-
-	client := xmcnbiclient.New(httpHost)
+// Initializes the actual XMC client
+func initializeClient() {
+	client = xmcnbiclient.New(config.httpHost)
 	client.SetUserAgent(httpUserAgent)
 	client.UseHTTPS()
-	if noHTTPS {
+	if config.noHTTPS {
 		client.UseHTTP()
 	}
-	client.UseBasicAuth(username, password)
-	if clientID != "" && clientSecret != "" {
-		client.UseOAuth(clientID, clientSecret)
+	client.UseBasicAuth(config.username, config.password)
+	if config.clientID != "" && config.clientSecret != "" {
+		client.UseOAuth(config.clientID, config.clientSecret)
 	}
 	client.UseSecureHTTPS()
-	if insecureHTTPS {
+	if config.insecureHTTPS {
 		client.UseInsecureHTTPS()
 	}
-	timeoutErr := client.SetTimeout(httpTimeoutSecs)
+	timeoutErr := client.SetTimeout(config.httpTimeoutSecs)
 	if timeoutErr != nil {
 		stdErr.Fatalf("Could not set HTTP timeout: %s\n", timeoutErr)
 	}
+}
 
-	stdOut.Println("Discovering active devices...")
+// Fetches the complete list of managed devices from XMC
+func discoverManagedDevices() ([]string, []string) {
+	stdOut.Println("Discovering managed devices...")
 
 	body, bodyErr := client.QueryAPI(gqlDeviceListQuery)
 	if bodyErr != nil {
@@ -243,136 +316,142 @@ func main() {
 		}
 	}
 	sort.Strings(upDevices)
-	stdOut.Println("Finished discovering active devices.")
+	stdOut.Println("Finished discovering managed devices.")
 
+	return upDevices, downDevices
+}
+
+// Triggers a rediscover for a list of devices
+func rediscoverDevices(ipList []string) []string {
 	var rediscoveredDevices []string
-	if refreshDevices {
-		for _, deviceIP := range upDevices {
-			body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
-			if bodyErr != nil {
-				stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
-				continue
-			}
-			if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-				if client.AccessToken.ExpiresSoon(httpTimeoutSecs + 1) {
-					go client.RetrieveOAuthToken()
-				}
-			}
-
-			mutation := mutationMessage{}
-			jsonErr := json.Unmarshal(body, &mutation)
-			if jsonErr != nil {
-				stdErr.Printf("Could not decode JSON: %s\n", jsonErr)
-				continue
-			}
-
-			if mutation.Data.Network.RediscoverDevices.Status == "SUCCESS" {
-				stdOut.Printf("Successfully triggered rediscover for %s.\n", deviceIP)
-				rediscoveredDevices = append(rediscoveredDevices, deviceIP)
-			} else {
-				stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
-			}
-
-			stdOut.Printf("Waiting for %d second(s)...\n", refreshWaitSecs)
-			time.Sleep(time.Second * time.Duration(refreshWaitSecs))
-		}
-		for i := operationWaitMins; i > 0; i-- {
-			stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
-			time.Sleep(time.Minute * time.Duration(1))
-		}
-	} else {
-		rediscoveredDevices = upDevices
-	}
-	if includeDown {
-		rediscoveredDevices = append(rediscoveredDevices, downDevices...)
-	}
-	sort.Strings(rediscoveredDevices)
-
-	queryResults := []resultSet{}
-	for _, deviceIP := range rediscoveredDevices {
-		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
+	for _, deviceIP := range ipList {
+		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
 		if bodyErr != nil {
-			stdErr.Printf("Could not query device %s: %s\n", deviceIP, bodyErr)
+			stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
 			continue
 		}
 		if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-			if client.AccessToken.ExpiresSoon(httpTimeoutSecs + 1) {
+			if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
 				go client.RetrieveOAuthToken()
 			}
 		}
 
-		jsonData := deviceData{}
-		jsonErr := json.Unmarshal(body, &jsonData)
+		mutation := mutationMessage{}
+		jsonErr := json.Unmarshal(body, &mutation)
 		if jsonErr != nil {
 			stdErr.Printf("Could not decode JSON: %s\n", jsonErr)
 			continue
 		}
 
-		device := jsonData.Data.Network.Device
-		vlans := jsonData.Data.Network.DeviceVlans
-		ports := jsonData.Data.Network.Device.EntityData.AllPorts
-
-		stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
-
-		systemResult := resultSet{}
-		systemResult.ID = device.ID
-		systemResult.BaseMac = device.BaseMac
-		systemResult.IP = device.IP
-		systemResult.SysUpDown = "down"
-		if device.Up {
-			systemResult.SysUpDown = "up"
+		if mutation.Data.Network.RediscoverDevices.Status == "SUCCESS" {
+			stdOut.Printf("Successfully triggered rediscover for %s.\n", deviceIP)
+			rediscoveredDevices = append(rediscoveredDevices, deviceIP)
+		} else {
+			stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 		}
-		systemResult.SysName = device.SysName
-		systemResult.SysLocation = device.SysLocation
-		systemResult.IfName = "SYSTEM"
-		systemResult.IfStatus = "N/A"
-		for _, vlan := range vlans {
-			systemResult.Tagged = append(systemResult.Tagged, strconv.Itoa(vlan.Vid))
-		}
-		queryResults = append(queryResults, systemResult)
 
-		for _, port := range ports {
-			portResult := resultSet{}
-			portResult.ID = device.ID
-			portResult.BaseMac = device.BaseMac
-			portResult.IP = device.IP
-			portResult.SysUpDown = "down"
-			if device.Up {
-				portResult.SysUpDown = "up"
-			}
-			portResult.SysName = device.SysName
-			portResult.SysLocation = device.SysLocation
-			portResult.IfName = port.IfName
-			portResult.IfStatus = port.IfOperStatus
-			for _, vlan := range port.VlanList {
-				if strings.Contains(vlan, "Untagged") {
-					portResult.Untagged = append(portResult.Untagged, strings.Split(vlan, "[")[0])
-				} else if strings.Contains(vlan, "Tagged") {
-					portResult.Tagged = append(portResult.Tagged, strings.Split(vlan, "[")[0])
-				}
-			}
-			queryResults = append(queryResults, portResult)
+		stdOut.Printf("Waiting for %d second(s)...\n", config.refreshWaitSecs)
+		time.Sleep(time.Second * time.Duration(config.refreshWaitSecs))
+	}
+	for i := config.operationWaitMins; i > 0; i-- {
+		stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
+		time.Sleep(time.Minute * time.Duration(1))
+	}
+	return rediscoveredDevices
+}
+
+// Fetches the detailed data for a single device from XMC
+func queryDevice(deviceIP string) ([]resultSet, error) {
+	var deviceResult []resultSet
+
+	body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
+	if bodyErr != nil {
+		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
+	}
+	if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
+		if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
+			go client.RetrieveOAuthToken()
 		}
 	}
 
-	fileHandle, fileErr := os.Create(outfile)
+	jsonData := deviceData{}
+	jsonErr := json.Unmarshal(body, &jsonData)
+	if jsonErr != nil {
+		return deviceResult, fmt.Errorf("Could not decode JSON: %s", jsonErr)
+	}
+
+	device := jsonData.Data.Network.Device
+	vlans := jsonData.Data.Network.DeviceVlans
+	ports := jsonData.Data.Network.Device.EntityData.AllPorts
+
+	stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
+
+	systemResult := resultSet{}
+	systemResult.ID = device.ID
+	systemResult.BaseMac = device.BaseMac
+	systemResult.IP = device.IP
+	systemResult.SysUpDown = "down"
+	if device.Up {
+		systemResult.SysUpDown = "up"
+	}
+	systemResult.SysName = device.SysName
+	systemResult.SysLocation = device.SysLocation
+	systemResult.IfName = "SYSTEM"
+	systemResult.IfStatus = "N/A"
+	for _, vlan := range vlans {
+		systemResult.Tagged = append(systemResult.Tagged, strconv.Itoa(vlan.Vid))
+	}
+	deviceResult = append(deviceResult, systemResult)
+
+	for _, port := range ports {
+		portResult := resultSet{}
+		portResult.ID = device.ID
+		portResult.BaseMac = device.BaseMac
+		portResult.IP = device.IP
+		portResult.SysUpDown = "down"
+		if device.Up {
+			portResult.SysUpDown = "up"
+		}
+		portResult.SysName = device.SysName
+		portResult.SysLocation = device.SysLocation
+		portResult.IfName = port.IfName
+		portResult.IfStatus = port.IfOperStatus
+		for _, vlan := range port.VlanList {
+			if strings.Contains(vlan, "Untagged") {
+				portResult.Untagged = append(portResult.Untagged, strings.Split(vlan, "[")[0])
+			} else if strings.Contains(vlan, "Tagged") {
+				portResult.Tagged = append(portResult.Tagged, strings.Split(vlan, "[")[0])
+			}
+		}
+		deviceResult = append(deviceResult, portResult)
+	}
+
+	return deviceResult, nil
+}
+
+// Writes the results to outfile
+func writeResults(results []resultSet) (uint, error) {
+	var rowsWritten uint = 0
+
+	fileHandle, fileErr := os.Create(config.outfile)
 	if fileErr != nil {
-		stdErr.Fatalf("Could not write outfile: %s\n", fileErr)
+		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
 	_, writeErr := fileWriter.WriteString("ID,BaseMac,IP,SysUpDown,SysName,SysLocation,IfName,IfStatus,Untagged,Tagged\n")
 	if writeErr != nil {
-		stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
+		return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 	}
-	for _, row := range queryResults {
+	for _, row := range results {
 		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysUpDown, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
 		if writeErr != nil {
-			stdErr.Fatalf("Could not write outfile: %s\n", writeErr)
+			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 		}
 		flushErr := fileWriter.Flush()
 		if flushErr != nil {
 			stdErr.Printf("Could not flush file buffer: %s\n", flushErr)
 		}
+		rowsWritten++
 	}
 	syncErr := fileHandle.Sync()
 	if syncErr != nil {
@@ -382,4 +461,61 @@ func main() {
 	if fhErr != nil {
 		stdErr.Printf("Could not close file handle: %s\n", fhErr)
 	}
+
+	return rowsWritten, nil
+}
+
+/*
+##     ##    ###    #### ##    ##
+###   ###   ## ##    ##  ###   ##
+#### ####  ##   ##   ##  ####  ##
+## ### ## ##     ##  ##  ## ## ##
+##     ## #########  ##  ##  ####
+##     ## ##     ##  ##  ##   ###
+##     ## ##     ## #### ##    ##
+*/
+
+func main() {
+	parseCLIOptions()
+
+	if config.printVersion {
+		fmt.Println(httpUserAgent)
+		os.Exit(0)
+	}
+
+	if config.outfile == "" {
+		stdErr.Fatal("outfile is required.")
+	}
+
+	initializeClient()
+
+	upDevices, downDevices := discoverManagedDevices()
+
+	var rediscoveredDevices []string
+	if config.refreshDevices {
+		rediscoveredDevices = rediscoverDevices(upDevices)
+	} else {
+		rediscoveredDevices = upDevices
+	}
+	if config.includeDown {
+		rediscoveredDevices = append(rediscoveredDevices, downDevices...)
+	}
+	sort.Strings(rediscoveredDevices)
+
+	queryResults := []resultSet{}
+	for _, deviceIP := range rediscoveredDevices {
+		deviceResult, deviceErr := queryDevice(deviceIP)
+		if deviceErr != nil {
+			fmt.Println(deviceErr)
+			continue
+		}
+		queryResults = append(queryResults, deviceResult...)
+	}
+
+	writeRows, writeErr := writeResults(queryResults)
+	if writeErr != nil {
+		stdOut.Println(writeErr)
+	}
+
+	stdOut.Printf("%d rows written to <%s>.", writeRows, config.outfile)
 }
