@@ -291,6 +291,15 @@ func initializeClient() {
 	}
 }
 
+// Refreshes the OAuth token if it is to expire soon
+func proactiveTokenRefresh() {
+	if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
+		if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
+			go client.RetrieveOAuthToken()
+		}
+	}
+}
+
 // Fetches the complete list of managed devices from XMC
 func discoverManagedDevices() ([]string, []string) {
 	stdOut.Println("Discovering managed devices...")
@@ -299,6 +308,7 @@ func discoverManagedDevices() ([]string, []string) {
 	if bodyErr != nil {
 		stdErr.Fatalf("Could not fetch device list: %s\n", bodyErr)
 	}
+	proactiveTokenRefresh()
 
 	devices := deviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
@@ -330,11 +340,7 @@ func rediscoverDevices(ipList []string) []string {
 			stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
 			continue
 		}
-		if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-			if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
-				go client.RetrieveOAuthToken()
-			}
-		}
+		proactiveTokenRefresh()
 
 		mutation := mutationMessage{}
 		jsonErr := json.Unmarshal(body, &mutation)
@@ -354,6 +360,7 @@ func rediscoverDevices(ipList []string) []string {
 		time.Sleep(time.Second * time.Duration(config.refreshWaitSecs))
 	}
 	for i := config.operationWaitMins; i > 0; i-- {
+		proactiveTokenRefresh()
 		stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 		time.Sleep(time.Minute * time.Duration(1))
 	}
@@ -368,11 +375,7 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	if bodyErr != nil {
 		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
 	}
-	if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-		if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
-			go client.RetrieveOAuthToken()
-		}
-	}
+	proactiveTokenRefresh()
 
 	jsonData := deviceData{}
 	jsonErr := json.Unmarshal(body, &jsonData)
@@ -482,7 +485,6 @@ func main() {
 		fmt.Println(httpUserAgent)
 		os.Exit(0)
 	}
-
 	if config.outfile == "" {
 		stdErr.Fatal("outfile is required.")
 	}
