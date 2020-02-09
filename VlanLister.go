@@ -46,6 +46,7 @@ import (
 	"strings"
 	"time"
 
+	envordef "gitlab.com/rbrt-weiler/go-module-envordef"
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
 
@@ -62,7 +63,7 @@ import (
 const (
 	toolName           string = "VlanLister.go"
 	toolVersion        string = "2.0.0-dev"
-	httpUserAgent      string = toolName + "/" + toolVersion
+	toolID             string = toolName + "/" + toolVersion
 	gqlDeviceListQuery string = `
 		query {
 			network {
@@ -123,20 +124,22 @@ const (
 
 // Stores configuration used throughout the app
 type appConfig struct {
-	httpHost          string
-	httpTimeoutSecs   uint
-	noHTTPS           bool
-	insecureHTTPS     bool
-	username          string
-	password          string
-	clientID          string
-	clientSecret      string
-	refreshDevices    bool
-	refreshWaitSecs   uint
-	operationWaitMins uint
-	includeDown       bool
-	outfile           string
-	printVersion      bool
+	XMCHost        string
+	XMCPort        uint
+	XMCPath        string
+	HTTPTimeout    uint
+	NoHTTPS        bool
+	InsecureHTTPS  bool
+	BasicAuth      bool
+	XMCUserID      string
+	XMCSecret      string
+	XMCQuery       string
+	RefreshDevices bool
+	RefreshWait    uint
+	FinishWait     uint
+	IncludeDown    bool
+	Outfile        string
+	PrintVersion   bool
 }
 
 // Used for parsing the list of devices returned by XMC
@@ -238,20 +241,21 @@ var (
 
 // Parses the CLI options and arguments into app config
 func parseCLIOptions() {
-	flag.StringVar(&config.httpHost, "host", "localhost", "XMC Hostname / IP")
-	flag.UintVar(&config.httpTimeoutSecs, "timeout", 5, "Timeout for HTTP(S) connections")
-	flag.BoolVar(&config.noHTTPS, "nohttps", false, "Use HTTP instead of HTTPS")
-	flag.BoolVar(&config.insecureHTTPS, "insecurehttps", false, "Do not validate HTTPS certificates")
-	flag.StringVar(&config.username, "username", "admin", "Username for HTTP Basic Auth")
-	flag.StringVar(&config.password, "password", "", "Password for HTTP Basic Auth")
-	flag.StringVar(&config.clientID, "clientid", "", "Client ID for OAuth")
-	flag.StringVar(&config.clientSecret, "clientsecret", "", "Client Secret for OAuth")
-	flag.BoolVar(&config.refreshDevices, "refreshdevices", true, "Refresh (rediscover) devices")
-	flag.UintVar(&config.refreshWaitSecs, "refreshwait", 5, "Seconds to wait between triggering each refresh")
-	flag.UintVar(&config.operationWaitMins, "operationwait", 15, "Minutes to wait after refreshing devices")
-	flag.BoolVar(&config.includeDown, "includedown", false, "Include inactive devices in result")
-	flag.StringVar(&config.outfile, "outfile", "", "File to write CSV data to")
-	flag.BoolVar(&config.printVersion, "version", false, "Print version information and exit")
+	flag.StringVar(&config.XMCHost, "host", envordef.StringVal("XMCHOST", ""), "XMC Hostname / IP")
+	flag.UintVar(&config.XMCPort, "port", envordef.UintVal("XMCPORT", 8443), "HTTP port where XMC is listening")
+	flag.StringVar(&config.XMCPath, "path", envordef.StringVal("XMCPATH", ""), "Path where XMC is reachable")
+	flag.UintVar(&config.HTTPTimeout, "timeout", envordef.UintVal("XMCTIMEOUT", 5), "Timeout for HTTP(S) connections")
+	flag.BoolVar(&config.NoHTTPS, "nohttps", envordef.BoolVal("XMCNOHTTPS", false), "Use HTTP instead of HTTPS")
+	flag.BoolVar(&config.InsecureHTTPS, "insecurehttps", envordef.BoolVal("XMCINSECURE", false), "Do not validate HTTPS certificates")
+	flag.StringVar(&config.XMCUserID, "userid", envordef.StringVal("XMCUSERID", ""), "Client ID (OAuth) or username (Basic Auth) for authentication")
+	flag.StringVar(&config.XMCSecret, "secret", envordef.StringVal("XMCSECRET", ""), "Client Secret (OAuth) or password (Basic Auth) for authentication")
+	flag.BoolVar(&config.BasicAuth, "basicauth", envordef.BoolVal("XMCBASICAUTH", false), "Use HTTP Basic Auth instead of OAuth")
+	flag.BoolVar(&config.RefreshDevices, "refreshdevices", envordef.BoolVal("XMCREFRESHDEVICES", true), "Refresh (rediscover) devices")
+	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 5), "Seconds to wait between triggering each refresh")
+	flag.UintVar(&config.FinishWait, "finishwait", envordef.UintVal("XMCFINISHWAIT", 15), "Minutes to wait after refreshing devices")
+	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
+	flag.StringVar(&config.Outfile, "outfile", envordef.StringVal("XMCOUTFILE", ""), "File to write CSV data to")
+	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
 		fmt.Fprintf(os.Stderr, "retrieves a list of all VLANs and VLAN to port associations, which is\n")
@@ -264,28 +268,42 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "Available options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "OAuth will be preferred over username/password.\n")
+		fmt.Fprintf(os.Stderr, "All options that take a value can be set via environment variables:\n")
+		fmt.Fprintf(os.Stderr, "  XMCHOST            -->  -host\n")
+		fmt.Fprintf(os.Stderr, "  XMCPORT            -->  -port\n")
+		fmt.Fprintf(os.Stderr, "  XMCPATH            -->  -path\n")
+		fmt.Fprintf(os.Stderr, "  XMCTIMEOUT         -->  -timeout\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOHTTPS         -->  -nohttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCINSECURE        -->  -insecurehttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCUSERID          -->  -userid\n")
+		fmt.Fprintf(os.Stderr, "  XMCSECRET          -->  -secret\n")
+		fmt.Fprintf(os.Stderr, "  XMCBASICAUTH       -->  -basicauth\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHDEVICES  -->  -refreshdevices\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT     -->  -refreshwait\n")
+		fmt.Fprintf(os.Stderr, "  XMCFINISHWAIT      -->  -finishwait\n")
+		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN     -->  -includedown\n")
+		fmt.Fprintf(os.Stderr, "  XMCOUTFILE         -->  -outfile\n")
 	}
 	flag.Parse()
 }
 
 // Initializes the actual XMC client
 func initializeClient() {
-	client = xmcnbiclient.New(config.httpHost)
-	client.SetUserAgent(httpUserAgent)
+	client = xmcnbiclient.New(config.XMCHost)
+	client.SetUserAgent(toolID)
 	client.UseHTTPS()
-	if config.noHTTPS {
+	if config.NoHTTPS {
 		client.UseHTTP()
 	}
-	client.UseBasicAuth(config.username, config.password)
-	if config.clientID != "" && config.clientSecret != "" {
-		client.UseOAuth(config.clientID, config.clientSecret)
+	client.UseOAuth(config.XMCUserID, config.XMCSecret)
+	if config.BasicAuth {
+		client.UseBasicAuth(config.XMCUserID, config.XMCSecret)
 	}
 	client.UseSecureHTTPS()
-	if config.insecureHTTPS {
+	if config.InsecureHTTPS {
 		client.UseInsecureHTTPS()
 	}
-	timeoutErr := client.SetTimeout(config.httpTimeoutSecs)
+	timeoutErr := client.SetTimeout(config.HTTPTimeout)
 	if timeoutErr != nil {
 		stdErr.Fatalf("Could not set HTTP timeout: %s\n", timeoutErr)
 	}
@@ -294,7 +312,7 @@ func initializeClient() {
 // Refreshes the OAuth token if it is to expire soon
 func proactiveTokenRefresh() {
 	if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
-		if client.AccessToken.ExpiresSoon(config.httpTimeoutSecs + 1) {
+		if client.AccessToken.ExpiresSoon(config.HTTPTimeout + 1) {
 			go client.RetrieveOAuthToken()
 		}
 	}
@@ -356,10 +374,10 @@ func rediscoverDevices(ipList []string) []string {
 			stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 		}
 
-		stdOut.Printf("Waiting for %d second(s)...\n", config.refreshWaitSecs)
-		time.Sleep(time.Second * time.Duration(config.refreshWaitSecs))
+		stdOut.Printf("Waiting for %d second(s)...\n", config.RefreshWait)
+		time.Sleep(time.Second * time.Duration(config.RefreshWait))
 	}
-	for i := config.operationWaitMins; i > 0; i-- {
+	for i := config.FinishWait; i > 0; i-- {
 		proactiveTokenRefresh()
 		stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 		time.Sleep(time.Minute * time.Duration(1))
@@ -436,7 +454,7 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 func writeResults(results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
 
-	fileHandle, fileErr := os.Create(config.outfile)
+	fileHandle, fileErr := os.Create(config.Outfile)
 	if fileErr != nil {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
 	}
@@ -481,11 +499,14 @@ func writeResults(results []resultSet) (uint, error) {
 func main() {
 	parseCLIOptions()
 
-	if config.printVersion {
-		fmt.Println(httpUserAgent)
+	if config.PrintVersion {
+		fmt.Println(toolID)
 		os.Exit(0)
 	}
-	if config.outfile == "" {
+	if config.XMCHost == "" {
+		stdErr.Fatal("host is required.")
+	}
+	if config.Outfile == "" {
 		stdErr.Fatal("outfile is required.")
 	}
 
@@ -494,12 +515,12 @@ func main() {
 	upDevices, downDevices := discoverManagedDevices()
 
 	var rediscoveredDevices []string
-	if config.refreshDevices {
+	if config.RefreshDevices {
 		rediscoveredDevices = rediscoverDevices(upDevices)
 	} else {
 		rediscoveredDevices = upDevices
 	}
-	if config.includeDown {
+	if config.IncludeDown {
 		rediscoveredDevices = append(rediscoveredDevices, downDevices...)
 	}
 	sort.Strings(rediscoveredDevices)
@@ -519,5 +540,5 @@ func main() {
 		stdOut.Println(writeErr)
 	}
 
-	stdOut.Printf("%d rows written to <%s>.", writeRows, config.outfile)
+	stdOut.Printf("%d rows written to <%s>.", writeRows, config.Outfile)
 }

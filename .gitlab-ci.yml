@@ -26,12 +26,14 @@ variables:
 
 
 
-.build_command: &build_command
+.dependency_command: &dependency_command
+- go get gitlab.com/rbrt-weiler/go-module-envordef
 - go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient
+
+.build_command: &build_command
 - go build -o binaries/VlanLister VlanLister.go
 
 .build_command_release: &build_command_release
-- go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient
 - GOOS=linux GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_linux-amd64 VlanLister.go
 - GOOS=windows GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_win-amd64.exe VlanLister.go
 - GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_darwin-amd64 VlanLister.go
@@ -55,6 +57,7 @@ build-master:
     paths:
       - binaries
   script:
+    - *dependency_command
     - *build_command
   allow_failure: true
 
@@ -84,6 +87,7 @@ build-stable:
     paths:
       - binaries
   script:
+    - *dependency_command
     - *build_command
 
 test-stable:
@@ -116,6 +120,7 @@ build-tagged:
     paths:
       - binaries
   script:
+    - *dependency_command
     - *build_command
     - *build_command_release
 
