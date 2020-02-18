@@ -46,6 +46,7 @@ import (
 	"strings"
 	"time"
 
+	godotenv "github.com/joho/godotenv"
 	envordef "gitlab.com/rbrt-weiler/go-module-envordef"
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
@@ -64,6 +65,7 @@ const (
 	toolName           string = "VlanLister.go"
 	toolVersion        string = "2.0.0-dev"
 	toolID             string = toolName + "/" + toolVersion
+	envFileName        string = ".xmcenv"
 	gqlDeviceListQuery string = `
 		query {
 			network {
@@ -495,6 +497,27 @@ func writeResults(results []resultSet) (uint, error) {
 ##     ## ##     ##  ##  ##   ###
 ##     ## ##     ## #### ##    ##
 */
+
+// init loads environment files if available.
+func init() {
+	// if envFileName exists in the current directory, load it
+	localEnvFile := fmt.Sprintf("./%s", envFileName)
+	if _, localEnvErr := os.Stat(localEnvFile); localEnvErr == nil {
+		if loadErr := godotenv.Load(localEnvFile); loadErr != nil {
+			fmt.Fprintf(os.Stderr, "Could not load env file <%s>: %s", localEnvFile, loadErr)
+		}
+	}
+
+	// if envFileName exists in the user's home directory, load it
+	if homeDir, homeErr := os.UserHomeDir(); homeErr == nil {
+		homeEnvFile := fmt.Sprintf("%s/%s", homeDir, ".xmcenv")
+		if _, homeEnvErr := os.Stat(homeEnvFile); homeEnvErr == nil {
+			if loadErr := godotenv.Load(homeEnvFile); loadErr != nil {
+				fmt.Fprintf(os.Stderr, "Could not load env file <%s>: %s", homeEnvFile, loadErr)
+			}
+		}
+	}
+}
 
 func main() {
 	parseCLIOptions()
