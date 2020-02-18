@@ -256,7 +256,7 @@ func parseCLIOptions() {
 	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 5), "Seconds to wait between triggering each refresh")
 	flag.UintVar(&config.FinishWait, "finishwait", envordef.UintVal("XMCFINISHWAIT", 15), "Minutes to wait after refreshing devices")
 	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
-	flag.StringVar(&config.Outfile, "outfile", envordef.StringVal("XMCOUTFILE", ""), "File to write CSV data to")
+	flag.StringVar(&config.Outfile, "outfile", "", "File to write CSV data to")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
@@ -270,7 +270,7 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "Available options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "All options that take a value can be set via environment variables:\n")
+		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
 		fmt.Fprintf(os.Stderr, "  XMCHOST            -->  -host\n")
 		fmt.Fprintf(os.Stderr, "  XMCPORT            -->  -port\n")
 		fmt.Fprintf(os.Stderr, "  XMCPATH            -->  -path\n")
@@ -284,7 +284,6 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT     -->  -refreshwait\n")
 		fmt.Fprintf(os.Stderr, "  XMCFINISHWAIT      -->  -finishwait\n")
 		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN     -->  -includedown\n")
-		fmt.Fprintf(os.Stderr, "  XMCOUTFILE         -->  -outfile\n")
 	}
 	flag.Parse()
 }

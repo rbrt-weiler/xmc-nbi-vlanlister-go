@@ -64,7 +64,7 @@ Available options:
   -version
     	Print version information and exit
 
-All options that take a value can be set via environment variables:
+Nearly all options that take a value can be set via environment variables:
   XMCHOST            -->  -host
   XMCPORT            -->  -port
   XMCPATH            -->  -path
