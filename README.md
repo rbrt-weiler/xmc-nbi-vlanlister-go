@@ -13,8 +13,9 @@ Other branches, for example for developing specific features, may be created and
 
 ## Dependencies
 
-VlanLister uses the modules [envordef](https://gitlab.com/rbrt-weiler/go-module-envordef) and [xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). Execute...
+VlanLister uses the modules [godotenv](https://github.com/joho/godotenv), [envordef](https://gitlab.com/rbrt-weiler/go-module-envordef) and [xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). Execute...
 
+1. `go get -u github.com/joho/godotenv`
 1. `go get -u gitlab.com/rbrt-weiler/go-module-envordef`
 1. `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient`
 
@@ -69,7 +70,7 @@ All options that take a value can be set via environment variables:
   XMCPATH            -->  -path
   XMCTIMEOUT         -->  -timeout
   XMCNOHTTPS         -->  -nohttps
-  XMCINSECURE        -->  -insecurehttps
+  XMCINSECUREHTTPS   -->  -insecurehttps
   XMCUSERID          -->  -userid
   XMCSECRET          -->  -secret
   XMCBASICAUTH       -->  -basicauth
