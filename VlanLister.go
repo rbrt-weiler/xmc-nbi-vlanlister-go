@@ -518,7 +518,6 @@ func writeResultsXLSX(results []resultSet) (uint, error) {
 	for _, row := range results {
 		colIndex = 1
 		rowIndex++
-		fmt.Println(row.ToArray())
 		for _, element := range row.ToArray() {
 			position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
 			if positionErr != nil {
