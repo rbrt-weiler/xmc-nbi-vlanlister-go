@@ -46,6 +46,7 @@ import (
 	"strings"
 	"time"
 
+	excelize "github.com/360EntSecGroup-Skylar/excelize"
 	godotenv "github.com/joho/godotenv"
 	envordef "gitlab.com/rbrt-weiler/go-module-envordef"
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
@@ -141,6 +142,7 @@ type appConfig struct {
 	FinishWait     uint
 	IncludeDown    bool
 	Outfile        string
+	OutXLSX        bool
 	PrintVersion   bool
 }
 
@@ -210,6 +212,12 @@ type resultSet struct {
 	Tagged      []string
 }
 
+// Convert a single resultSet to an array
+func (rs *resultSet) ToArray() []string {
+	retVal := []string{strconv.Itoa(rs.ID), rs.BaseMac, rs.IP, rs.SysUpDown, rs.SysName, rs.SysLocation, rs.IfName, rs.IfStatus, strings.Join(rs.Untagged, ","), strings.Join(rs.Tagged, ",")}
+	return retVal
+}
+
 /*
 ##     ##    ###    ########   ######
 ##     ##   ## ##   ##     ## ##    ##
@@ -229,6 +237,8 @@ var (
 	stdOut = log.New(os.Stdout, "", log.LstdFlags)
 	// Logging-formatted stderr
 	stdErr = log.New(os.Stderr, "", log.LstdFlags)
+	// Columns used in outfiles
+	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
 )
 
 /*
@@ -256,7 +266,8 @@ func parseCLIOptions() {
 	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 5), "Seconds to wait between triggering each refresh")
 	flag.UintVar(&config.FinishWait, "finishwait", envordef.UintVal("XMCFINISHWAIT", 15), "Minutes to wait after refreshing devices")
 	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
-	flag.StringVar(&config.Outfile, "outfile", "", "File to write CSV data to")
+	flag.StringVar(&config.Outfile, "outfile", "", "File to write CSV/XLSX data to")
+	flag.BoolVar(&config.OutXLSX, "outxlsx", false, "Write XLSX instead of CSV")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
@@ -451,8 +462,8 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	return deviceResult, nil
 }
 
-// Writes the results to outfile
-func writeResults(results []resultSet) (uint, error) {
+// Writes the results to outfile in CSV format
+func writeResultsCSV(results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
 
 	fileHandle, fileErr := os.Create(config.Outfile)
@@ -460,7 +471,7 @@ func writeResults(results []resultSet) (uint, error) {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
-	_, writeErr := fileWriter.WriteString("ID,BaseMac,IP,SysUpDown,SysName,SysLocation,IfName,IfStatus,Untagged,Tagged\n")
+	_, writeErr := fileWriter.WriteString(fmt.Sprintf("%s\n", strings.Join(tableColumns[0:10], ",")))
 	if writeErr != nil {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 	}
@@ -482,6 +493,45 @@ func writeResults(results []resultSet) (uint, error) {
 	fhErr := fileHandle.Close()
 	if fhErr != nil {
 		stdErr.Printf("Could not close file handle: %s\n", fhErr)
+	}
+
+	return rowsWritten, nil
+}
+
+// Writes the results to outfile in XLSX format
+func writeResultsXLSX(results []resultSet) (uint, error) {
+	var rowsWritten uint = 0
+	var colIndex int = 1
+	var rowIndex int = 1
+
+	xlsx := excelize.NewFile()
+
+	for _, columnName := range tableColumns {
+		position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
+		if positionErr != nil {
+			return rowsWritten, positionErr
+		}
+		xlsx.SetCellValue("Sheet1", position, columnName)
+		colIndex++
+	}
+
+	for _, row := range results {
+		colIndex = 1
+		rowIndex++
+		fmt.Println(row.ToArray())
+		for _, element := range row.ToArray() {
+			position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
+			if positionErr != nil {
+				return rowsWritten, positionErr
+			}
+			xlsx.SetCellValue("Sheet1", position, element)
+			colIndex++
+		}
+		rowsWritten++
+	}
+
+	if saveErr := xlsx.SaveAs(config.Outfile); saveErr != nil {
+		return rowsWritten, saveErr
 	}
 
 	return rowsWritten, nil
@@ -557,7 +607,13 @@ func main() {
 		queryResults = append(queryResults, deviceResult...)
 	}
 
-	writeRows, writeErr := writeResults(queryResults)
+	var writeRows uint
+	var writeErr error
+	if config.OutXLSX {
+		writeRows, writeErr = writeResultsXLSX(queryResults)
+	} else {
+		writeRows, writeErr = writeResultsCSV(queryResults)
+	}
 	if writeErr != nil {
 		stdOut.Println(writeErr)
 	}

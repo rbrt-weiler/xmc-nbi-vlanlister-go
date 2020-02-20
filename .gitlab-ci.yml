@@ -27,6 +27,7 @@ variables:
 
 
 .dependency_command: &dependency_command
+- go get github.com/360EntSecGroup-Skylar/excelize
 - go get github.com/joho/godotenv
 - go get gitlab.com/rbrt-weiler/go-module-envordef
 - go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient

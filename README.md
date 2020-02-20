@@ -13,8 +13,9 @@ Other branches, for example for developing specific features, may be created and
 
 ## Dependencies
 
-VlanLister uses the modules [godotenv](https://github.com/joho/godotenv), [envordef](https://gitlab.com/rbrt-weiler/go-module-envordef) and [xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). Execute...
+VlanLister uses the modules [excelize](https://github.com/360EntSecGroup-Skylar/excelize), [godotenv](https://github.com/joho/godotenv), [envordef](https://gitlab.com/rbrt-weiler/go-module-envordef) and [xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). Execute...
 
+1. `go get -u github.com/360EntSecGroup-Skylar/excelize`
 1. `go get -u github.com/joho/godotenv`
 1. `go get -u gitlab.com/rbrt-weiler/go-module-envordef`
 1. `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient`
@@ -46,7 +47,9 @@ Available options:
   -nohttps
     	Use HTTP instead of HTTPS
   -outfile string
-    	File to write CSV data to
+    	File to write CSV/XLSX data to
+  -outxlsx
+    	Write XLSX instead of CSV
   -path string
     	Path where XMC is reachable
   -port uint
@@ -78,7 +81,6 @@ Nearly all options that take a value can be set via environment variables:
   XMCREFRESHWAIT     -->  -refreshwait
   XMCFINISHWAIT      -->  -finishwait
   XMCINCLUDEDOWN     -->  -includedown
-  XMCOUTFILE         -->  -outfile
 </pre>
 
 ## Authentication
