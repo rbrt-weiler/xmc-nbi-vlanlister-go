@@ -19,7 +19,7 @@ after_script:
 include:
   - template: SAST.gitlab-ci.yml # GITLAB_FEATURES = "sast"
   - template: License-Management.gitlab-ci.yml # GITLAB_FEATURES = "license_management"
-  - template: Dependency-Scanning.gitlab-ci.yml
+  - template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
 
 variables:
   SAST_DISABLE_DIND: "true"
