@@ -125,6 +125,17 @@ const (
    ##       ##    ##        ########  ######
 */
 
+type outfileArray []string
+
+func (oa *outfileArray) String() string {
+	return strings.Join(*oa, ",")
+}
+
+func (oa *outfileArray) Set(value string) error {
+	*oa = append(*oa, value)
+	return nil
+}
+
 // Stores configuration used throughout the app
 type appConfig struct {
 	XMCHost        string
@@ -141,8 +152,7 @@ type appConfig struct {
 	RefreshWait    uint
 	FinishWait     uint
 	IncludeDown    bool
-	Outfile        string
-	OutXLSX        bool
+	Outfile        outfileArray
 	PrintVersion   bool
 }
 
@@ -266,8 +276,7 @@ func parseCLIOptions() {
 	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 5), "Seconds to wait between triggering each refresh")
 	flag.UintVar(&config.FinishWait, "finishwait", envordef.UintVal("XMCFINISHWAIT", 15), "Minutes to wait after refreshing devices")
 	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
-	flag.StringVar(&config.Outfile, "outfile", "", "File to write CSV/XLSX data to")
-	flag.BoolVar(&config.OutXLSX, "outxlsx", false, "Write XLSX instead of CSV")
+	flag.Var(&config.Outfile, "outfile", "File to write data to")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
@@ -280,6 +289,11 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Available options:\n")
 		flag.PrintDefaults()
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "It is required to provide at least one outfile. Valid types are CSV and\n")
+		fmt.Fprintf(os.Stderr, "Excel, determined by the file extensions '.csv' and '.xlsx' or by prefixing\n")
+		fmt.Fprintf(os.Stderr, "the outfile with either 'csv:' or 'xlsx:'. Prefixes take priority over\n")
+		fmt.Fprintf(os.Stderr, "suffixes.\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
 		fmt.Fprintf(os.Stderr, "  XMCHOST            -->  -host\n")
@@ -462,11 +476,45 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	return deviceResult, nil
 }
 
+// Decides which actual writeResults* function shall be used based on filename pre- or suffix
+func writeResults(filename string, results []resultSet) (uint, error) {
+	var validFiletypes = [...]string{"csv", "xlsx"}
+
+	// Prefix checking
+	for _, filetype := range validFiletypes {
+		prefix := fmt.Sprintf("%s:", filetype)
+		if strings.HasPrefix(filename, prefix) {
+			filename = strings.TrimPrefix(filename, prefix)
+			switch filetype {
+			case "csv":
+				return writeResultsCSV(filename, results)
+			case "xlsx":
+				return writeResultsXLSX(filename, results)
+			}
+		}
+	}
+
+	// Suffix checking
+	for _, filetype := range validFiletypes {
+		suffix := fmt.Sprintf(".%s", filetype)
+		if strings.HasSuffix(filename, suffix) {
+			switch filetype {
+			case "csv":
+				return writeResultsCSV(filename, results)
+			case "xlsx":
+				return writeResultsXLSX(filename, results)
+			}
+		}
+	}
+
+	return 0, fmt.Errorf("Could not determine file type for <%s>", filename)
+}
+
 // Writes the results to outfile in CSV format
-func writeResultsCSV(results []resultSet) (uint, error) {
+func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
 
-	fileHandle, fileErr := os.Create(config.Outfile)
+	fileHandle, fileErr := os.Create(filename)
 	if fileErr != nil {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
 	}
@@ -499,7 +547,7 @@ func writeResultsCSV(results []resultSet) (uint, error) {
 }
 
 // Writes the results to outfile in XLSX format
-func writeResultsXLSX(results []resultSet) (uint, error) {
+func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
 	var colIndex int = 1
 	var rowIndex int = 1
@@ -529,7 +577,7 @@ func writeResultsXLSX(results []resultSet) (uint, error) {
 		rowsWritten++
 	}
 
-	if saveErr := xlsx.SaveAs(config.Outfile); saveErr != nil {
+	if saveErr := xlsx.SaveAs(filename); saveErr != nil {
 		return rowsWritten, saveErr
 	}
 
@@ -577,7 +625,7 @@ func main() {
 	if config.XMCHost == "" {
 		stdErr.Fatal("host is required.")
 	}
-	if config.Outfile == "" {
+	if len(config.Outfile) <= 0 {
 		stdErr.Fatal("outfile is required.")
 	}
 
@@ -608,14 +656,12 @@ func main() {
 
 	var writeRows uint
 	var writeErr error
-	if config.OutXLSX {
-		writeRows, writeErr = writeResultsXLSX(queryResults)
-	} else {
-		writeRows, writeErr = writeResultsCSV(queryResults)
+	for _, outfile := range config.Outfile {
+		writeRows, writeErr = writeResults(outfile, queryResults)
+		if writeErr != nil {
+			stdOut.Println(writeErr)
+		} else {
+			stdOut.Printf("%d rows written to <%s>.\n", writeRows, outfile)
+		}
 	}
-	if writeErr != nil {
-		stdOut.Println(writeErr)
-	}
-
-	stdOut.Printf("%d rows written to <%s>.", writeRows, config.Outfile)
 }

@@ -47,9 +47,7 @@ Available options:
   -nohttps
     	Use HTTP instead of HTTPS
   -outfile string
-    	File to write CSV/XLSX data to
-  -outxlsx
-    	Write XLSX instead of CSV
+    	File to write data to
   -path string
     	Path where XMC is reachable
   -port uint
@@ -66,6 +64,11 @@ Available options:
     	Client ID (OAuth) or username (Basic Auth) for authentication
   -version
     	Print version information and exit
+
+It is required to provide at least one outfile. Valid types are CSV and
+Excel, determined by the file extensions '.csv' and '.xlsx' or by prefixing
+the outfile with either 'csv:' or 'xlsx:'. Prefixes take priority over
+suffixes.
 
 Nearly all options that take a value can be set via environment variables:
   XMCHOST            -->  -host
