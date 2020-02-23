@@ -38,6 +38,7 @@ const (
 	toolName    string = "VlanLister.go"
 	toolVersion string = "2.0.0"
 	toolID      string = toolName + "/" + toolVersion
+	toolURL     string = "https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go"
 	envFileName string = ".xmcenv"
 )
 
@@ -133,6 +134,9 @@ func parseCLIOptions() {
 	flag.Var(&config.Outfile, "outfile", "File to write data to")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
+		fmt.Fprintf(os.Stderr, "%s\n", toolID)
+		fmt.Fprintf(os.Stderr, "%s\n", toolURL)
+		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "This tool fetches a list of active devices (state = up) from XMC. It then\n")
 		fmt.Fprintf(os.Stderr, "retrieves a list of all VLANs and VLAN to port associations, which is\n")
 		fmt.Fprintf(os.Stderr, "written to outfile.\n")
@@ -163,6 +167,10 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "  XMCREFRESHINTERVAL  -->  -refreshinterval\n")
 		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT      -->  -refreshwait\n")
 		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN      -->  -includedown\n")
+		fmt.Fprintf(os.Stderr, "\n")
+		fmt.Fprintf(os.Stderr, "Environment variables can also be configured via a file called %s,\n", envFileName)
+		fmt.Fprintf(os.Stderr, "located in the current directory or in the home directory of the current\n")
+		fmt.Fprintf(os.Stderr, "user.\n")
 	}
 	flag.Parse()
 }
