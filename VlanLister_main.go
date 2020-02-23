@@ -36,7 +36,7 @@ import (
 
 const (
 	toolName    string = "VlanLister.go"
-	toolVersion string = "2.0.0-dev"
+	toolVersion string = "2.0.0"
 	toolID      string = toolName + "/" + toolVersion
 	envFileName string = ".xmcenv"
 )
