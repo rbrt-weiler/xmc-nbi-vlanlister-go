@@ -1,29 +1,155 @@
-image: golang:1.11
+image: golang:1.13
+
+
 
 stages:
   - build
+  - test
+  - deploy
 
-build-win64-executable:
+
+
+before_script:
+  - mkdir -p binaries
+
+after_script:
+  - ls -l binaries
+
+# do not forget to set project variables
+include:
+  - template: SAST.gitlab-ci.yml # GITLAB_FEATURES = "sast"
+  - template: License-Management.gitlab-ci.yml # GITLAB_FEATURES = "license_management"
+  - template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
+
+variables:
+  SAST_DISABLE_DIND: "true"
+  SAST_GOSEC_LEVEL: 0
+
+
+
+.dependency_command: &dependency_command
+- go get github.com/360EntSecGroup-Skylar/excelize
+- go get github.com/joho/godotenv
+- go get gitlab.com/rbrt-weiler/go-module-envordef
+- go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient
+
+.build_command: &build_command
+- go build -o binaries/VlanLister ./...
+
+.build_command_release: &build_command_release
+- GOOS=linux GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_linux-amd64 ./...
+- GOOS=windows GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_win-amd64.exe ./...
+- GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_darwin-amd64 ./...
+
+.test_command: &test_command
+- ./binaries/VlanLister -version
+
+.release_command: &release_command
+- rm binaries/VlanLister
+- ln -s binaries VlanLister_${CI_COMMIT_TAG}
+
+
+
+build-master:
+  stage: build
+  except:
+    - stable
+    - tags
+  cache:
+    key: "dev-$CI_COMMIT_SHA"
+    paths:
+      - binaries
+  script:
+    - *dependency_command
+    - *build_command
+  allow_failure: true
+
+test-master:
+  stage: test
+  except:
+    - stable
+    - tags
+  cache:
+    key: "dev-$CI_COMMIT_SHA"
+    paths:
+      - binaries
+  script:
+    - *test_command
+  allow_failure: true
+
+
+
+build-stable:
   stage: build
   only:
     - stable
+  except:
+    - tags
+  cache:
+    key: "staging-$CI_COMMIT_SHA"
+    paths:
+      - binaries
   script:
-    - mkdir binaries
-    - GOOS=windows GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH.exe VlanLister.go
+    - *dependency_command
+    - *build_command
 
-build-linux64-executable:
-  stage: build
+test-stable:
+  stage: test
   only:
     - stable
+  except:
+    - tags
+  cache:
+    key: "staging-$CI_COMMIT_SHA"
+    paths:
+      - binaries
   script:
-    - mkdir binaries
-    - GOOS=linux GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH VlanLister.go
+    - *test_command
+  artifacts:
+    when: on_success
+    expire_in: 30 minutes
+    name: "VlanLister_${CI_COMMIT_SHORT_SHA}"
+    paths:
+      - binaries/*
 
-build-darwin64-executable:
+
+
+build-tagged:
   stage: build
   only:
-    - stable
+    - tags
+  cache:
+    key: "release-$CI_COMMIT_SHA"
+    paths:
+      - binaries
   script:
-    - mkdir binaries
-    - GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_$GOOS_$GOARCH VlanLister.go
+    - *dependency_command
+    - *build_command
+    - *build_command_release
 
+test-tagged:
+  stage: test
+  only:
+    - tags
+  cache:
+    key: "release-$CI_COMMIT_SHA"
+    paths:
+      - binaries
+  script:
+    - *test_command
+
+deploy-tagged:
+  stage: deploy
+  only:
+    - tags
+  cache:
+    key: "release-$CI_COMMIT_SHA"
+    paths:
+      - binaries
+  script:
+    - *release_command
+  artifacts:
+    when: on_success
+    name: "VlanLister_${CI_COMMIT_TAG}"
+    paths:
+      - VlanLister_${CI_COMMIT_TAG}/*
