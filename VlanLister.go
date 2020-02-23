@@ -346,7 +346,7 @@ func proactiveTokenRefresh() {
 
 // Fetches the complete list of managed devices from XMC
 func discoverManagedDevices() ([]string, []string) {
-	stdOut.Println("Discovering managed devices...")
+	stdErr.Println("Discovering managed devices...")
 
 	body, bodyErr := client.QueryAPI(gqlDeviceListQuery)
 	if bodyErr != nil {
@@ -370,7 +370,7 @@ func discoverManagedDevices() ([]string, []string) {
 		}
 	}
 	sort.Strings(upDevices)
-	stdOut.Println("Finished discovering managed devices.")
+	stdErr.Println("Finished discovering managed devices.")
 
 	return upDevices, downDevices
 }
@@ -394,18 +394,18 @@ func rediscoverDevices(ipList []string) []string {
 		}
 
 		if mutation.Data.Network.RediscoverDevices.Status == "SUCCESS" {
-			stdOut.Printf("Successfully triggered rediscover for %s.\n", deviceIP)
+			stdErr.Printf("Successfully triggered rediscover for %s.\n", deviceIP)
 			rediscoveredDevices = append(rediscoveredDevices, deviceIP)
 		} else {
 			stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 		}
 
-		stdOut.Printf("Waiting for %d second(s)...\n", config.RefreshInterval)
+		stdErr.Printf("Waiting for %d second(s)...\n", config.RefreshInterval)
 		time.Sleep(time.Second * time.Duration(config.RefreshInterval))
 	}
 	for i := config.RefreshWait; i > 0; i-- {
 		proactiveTokenRefresh()
-		stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
+		stdErr.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 		time.Sleep(time.Minute * time.Duration(1))
 	}
 	return rediscoveredDevices
@@ -431,7 +431,7 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	vlans := jsonData.Data.Network.DeviceVlans
 	ports := jsonData.Data.Network.Device.EntityData.AllPorts
 
-	stdOut.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
+	stdErr.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
 
 	systemResult := resultSet{}
 	systemResult.ID = device.ID
@@ -600,7 +600,7 @@ func init() {
 	localEnvFile := fmt.Sprintf("./%s", envFileName)
 	if _, localEnvErr := os.Stat(localEnvFile); localEnvErr == nil {
 		if loadErr := godotenv.Load(localEnvFile); loadErr != nil {
-			fmt.Fprintf(os.Stderr, "Could not load env file <%s>: %s", localEnvFile, loadErr)
+			stdErr.Printf("Could not load env file <%s>: %s", localEnvFile, loadErr)
 		}
 	}
 
@@ -609,7 +609,7 @@ func init() {
 		homeEnvFile := fmt.Sprintf("%s/%s", homeDir, ".xmcenv")
 		if _, homeEnvErr := os.Stat(homeEnvFile); homeEnvErr == nil {
 			if loadErr := godotenv.Load(homeEnvFile); loadErr != nil {
-				fmt.Fprintf(os.Stderr, "Could not load env file <%s>: %s", homeEnvFile, loadErr)
+				stdErr.Printf("Could not load env file <%s>: %s", homeEnvFile, loadErr)
 			}
 		}
 	}
@@ -648,7 +648,7 @@ func main() {
 	for _, deviceIP := range rediscoveredDevices {
 		deviceResult, deviceErr := queryDevice(deviceIP)
 		if deviceErr != nil {
-			fmt.Println(deviceErr)
+			stdErr.Println(deviceErr)
 			continue
 		}
 		queryResults = append(queryResults, deviceResult...)
@@ -659,9 +659,9 @@ func main() {
 	for _, outfile := range config.Outfile {
 		writeRows, writeErr = writeResults(outfile, queryResults)
 		if writeErr != nil {
-			stdOut.Println(writeErr)
+			stdErr.Println(writeErr)
 		} else {
-			stdOut.Printf("%d rows written to <%s>.\n", writeRows, outfile)
+			stdErr.Printf("%d rows written to <%s>.\n", writeRows, outfile)
 		}
 	}
 }
