@@ -24,7 +24,7 @@ VlanLister uses the modules [excelize](https://github.com/360EntSecGroup-Skylar/
 
 ## Running / Compiling
 
-Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary.
+Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary. Prebuilt binaries may be available as artifacts from the GitLab CI/CD [pipeline for tagged releases](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/pipelines?scope=tags).
 
 Tested with [go1.13](https://golang.org/doc/go1.13) against XMC 8.4.1.24.
 
@@ -84,6 +84,10 @@ Nearly all options that take a value can be set via environment variables:
   XMCREFRESHINTERVAL  -->  -refreshinterval
   XMCREFRESHWAIT      -->  -refreshwait
   XMCINCLUDEDOWN      -->  -includedown
+
+Environment variables can also be configured via a file called .xmcenv,
+located in the current directory or in the home directory of the current
+user.
 </pre>
 
 ### Examples
@@ -101,7 +105,7 @@ Nearly all options that take a value can be set via environment variables:
 
 VlanLister supports two methods of authentication: OAuth2 and HTTP Basic Auth.
 
-* OAuth2: To use OAuth2, provide the parameters `userid` and `secret`. VlanLister will attempt to obtain a OAuth2 token from XMC with the supplied credentials and, if successful, submit only that token with each API request as part of the HTTP header.
+* OAuth2: To use OAuth2, provide the parameters `userid` and `secret`. VlanLister will attempt to obtain an OAuth2 token from XMC with the supplied credentials and, if successful, submit only that token with each API request as part of the HTTP header.
 * HTTP Basic Auth: To use HTTP Basic Auth, provide the parameters `userid` and `secret` as well as `basicauth`. VlanLister will transmit the supplied credentials with each API request as part of the HTTP request header.
 
 As all interactions between VlanLister and XMC are secured with HTTPS by default both methods should be safe for transmission over networks. It is strongly recommended to use OAuth2 though. Should the credentials ever be compromised, for example when using them on the CLI on a shared workstation, remediation will be much easier with OAuth2. When using unencrypted HTTP transfer (`nohttps`), Basic Auth should never be used.
