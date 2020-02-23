@@ -138,22 +138,22 @@ func (oa *outfileArray) Set(value string) error {
 
 // Stores configuration used throughout the app
 type appConfig struct {
-	XMCHost        string
-	XMCPort        uint
-	XMCPath        string
-	HTTPTimeout    uint
-	NoHTTPS        bool
-	InsecureHTTPS  bool
-	BasicAuth      bool
-	XMCUserID      string
-	XMCSecret      string
-	XMCQuery       string
-	RefreshDevices bool
-	RefreshWait    uint
-	FinishWait     uint
-	IncludeDown    bool
-	Outfile        outfileArray
-	PrintVersion   bool
+	XMCHost         string
+	XMCPort         uint
+	XMCPath         string
+	HTTPTimeout     uint
+	NoHTTPS         bool
+	InsecureHTTPS   bool
+	BasicAuth       bool
+	XMCUserID       string
+	XMCSecret       string
+	XMCQuery        string
+	NoRefresh       bool
+	RefreshInterval uint
+	RefreshWait     uint
+	IncludeDown     bool
+	Outfile         outfileArray
+	PrintVersion    bool
 }
 
 // Used for parsing the list of devices returned by XMC
@@ -272,9 +272,9 @@ func parseCLIOptions() {
 	flag.StringVar(&config.XMCUserID, "userid", envordef.StringVal("XMCUSERID", ""), "Client ID (OAuth) or username (Basic Auth) for authentication")
 	flag.StringVar(&config.XMCSecret, "secret", envordef.StringVal("XMCSECRET", ""), "Client Secret (OAuth) or password (Basic Auth) for authentication")
 	flag.BoolVar(&config.BasicAuth, "basicauth", envordef.BoolVal("XMCBASICAUTH", false), "Use HTTP Basic Auth instead of OAuth")
-	flag.BoolVar(&config.RefreshDevices, "refreshdevices", envordef.BoolVal("XMCREFRESHDEVICES", true), "Refresh (rediscover) devices")
-	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 5), "Seconds to wait between triggering each refresh")
-	flag.UintVar(&config.FinishWait, "finishwait", envordef.UintVal("XMCFINISHWAIT", 15), "Minutes to wait after refreshing devices")
+	flag.BoolVar(&config.NoRefresh, "norefresh", envordef.BoolVal("XMCNOREFRESH", false), "Do not refresh (rediscover) devices")
+	flag.UintVar(&config.RefreshInterval, "refreshinterval", envordef.UintVal("XMCREFRESHINTERVAL", 5), "Seconds to wait between triggering each refresh")
+	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 15), "Minutes to wait after refreshing devices")
 	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
 	flag.Var(&config.Outfile, "outfile", "File to write data to")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
@@ -296,19 +296,19 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "suffixes.\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
-		fmt.Fprintf(os.Stderr, "  XMCHOST            -->  -host\n")
-		fmt.Fprintf(os.Stderr, "  XMCPORT            -->  -port\n")
-		fmt.Fprintf(os.Stderr, "  XMCPATH            -->  -path\n")
-		fmt.Fprintf(os.Stderr, "  XMCTIMEOUT         -->  -timeout\n")
-		fmt.Fprintf(os.Stderr, "  XMCNOHTTPS         -->  -nohttps\n")
-		fmt.Fprintf(os.Stderr, "  XMCINSECUREHTTPS   -->  -insecurehttps\n")
-		fmt.Fprintf(os.Stderr, "  XMCUSERID          -->  -userid\n")
-		fmt.Fprintf(os.Stderr, "  XMCSECRET          -->  -secret\n")
-		fmt.Fprintf(os.Stderr, "  XMCBASICAUTH       -->  -basicauth\n")
-		fmt.Fprintf(os.Stderr, "  XMCREFRESHDEVICES  -->  -refreshdevices\n")
-		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT     -->  -refreshwait\n")
-		fmt.Fprintf(os.Stderr, "  XMCFINISHWAIT      -->  -finishwait\n")
-		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN     -->  -includedown\n")
+		fmt.Fprintf(os.Stderr, "  XMCHOST             -->  -host\n")
+		fmt.Fprintf(os.Stderr, "  XMCPORT             -->  -port\n")
+		fmt.Fprintf(os.Stderr, "  XMCPATH             -->  -path\n")
+		fmt.Fprintf(os.Stderr, "  XMCTIMEOUT          -->  -timeout\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOHTTPS          -->  -nohttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCINSECUREHTTPS    -->  -insecurehttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCUSERID           -->  -userid\n")
+		fmt.Fprintf(os.Stderr, "  XMCSECRET           -->  -secret\n")
+		fmt.Fprintf(os.Stderr, "  XMCBASICAUTH        -->  -basicauth\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOREFRESH        -->  -norefresh\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHINTERVAL  -->  -refreshinterval\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT      -->  -refreshwait\n")
+		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN      -->  -includedown\n")
 	}
 	flag.Parse()
 }
@@ -400,10 +400,10 @@ func rediscoverDevices(ipList []string) []string {
 			stdErr.Printf("Rediscover for %s failed: %s\n", deviceIP, mutation.Data.Network.RediscoverDevices.Message)
 		}
 
-		stdOut.Printf("Waiting for %d second(s)...\n", config.RefreshWait)
-		time.Sleep(time.Second * time.Duration(config.RefreshWait))
+		stdOut.Printf("Waiting for %d second(s)...\n", config.RefreshInterval)
+		time.Sleep(time.Second * time.Duration(config.RefreshInterval))
 	}
-	for i := config.FinishWait; i > 0; i-- {
+	for i := config.RefreshWait; i > 0; i-- {
 		proactiveTokenRefresh()
 		stdOut.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 		time.Sleep(time.Minute * time.Duration(1))
@@ -634,10 +634,10 @@ func main() {
 	upDevices, downDevices := discoverManagedDevices()
 
 	var rediscoveredDevices []string
-	if config.RefreshDevices {
-		rediscoveredDevices = rediscoverDevices(upDevices)
-	} else {
+	if config.NoRefresh {
 		rediscoveredDevices = upDevices
+	} else {
+		rediscoveredDevices = rediscoverDevices(upDevices)
 	}
 	if config.IncludeDown {
 		rediscoveredDevices = append(rediscoveredDevices, downDevices...)

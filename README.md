@@ -36,8 +36,6 @@ Tested with [go1.13](https://golang.org/doc/go1.13).
 Available options:
   -basicauth
     	Use HTTP Basic Auth instead of OAuth
-  -finishwait uint
-    	Minutes to wait after refreshing devices (default 15)
   -host string
     	XMC Hostname / IP
   -includedown
@@ -46,16 +44,18 @@ Available options:
     	Do not validate HTTPS certificates
   -nohttps
     	Use HTTP instead of HTTPS
-  -outfile string
+  -norefresh
+    	Do not refresh (rediscover) devices
+  -outfile value
     	File to write data to
   -path string
     	Path where XMC is reachable
   -port uint
     	HTTP port where XMC is listening (default 8443)
-  -refreshdevices
-    	Refresh (rediscover) devices (default true)
-  -refreshwait uint
+  -refreshinterval uint
     	Seconds to wait between triggering each refresh (default 5)
+  -refreshwait uint
+    	Minutes to wait after refreshing devices (default 15)
   -secret string
     	Client Secret (OAuth) or password (Basic Auth) for authentication
   -timeout uint
@@ -71,19 +71,19 @@ the outfile with either 'csv:' or 'xlsx:'. Prefixes take priority over
 suffixes.
 
 Nearly all options that take a value can be set via environment variables:
-  XMCHOST            -->  -host
-  XMCPORT            -->  -port
-  XMCPATH            -->  -path
-  XMCTIMEOUT         -->  -timeout
-  XMCNOHTTPS         -->  -nohttps
-  XMCINSECUREHTTPS   -->  -insecurehttps
-  XMCUSERID          -->  -userid
-  XMCSECRET          -->  -secret
-  XMCBASICAUTH       -->  -basicauth
-  XMCREFRESHDEVICES  -->  -refreshdevices
-  XMCREFRESHWAIT     -->  -refreshwait
-  XMCFINISHWAIT      -->  -finishwait
-  XMCINCLUDEDOWN     -->  -includedown
+  XMCHOST             -->  -host
+  XMCPORT             -->  -port
+  XMCPATH             -->  -path
+  XMCTIMEOUT          -->  -timeout
+  XMCNOHTTPS          -->  -nohttps
+  XMCINSECUREHTTPS    -->  -insecurehttps
+  XMCUSERID           -->  -userid
+  XMCSECRET           -->  -secret
+  XMCBASICAUTH        -->  -basicauth
+  XMCNOREFRESH        -->  -norefresh
+  XMCREFRESHINTERVAL  -->  -refreshinterval
+  XMCREFRESHWAIT      -->  -refreshwait
+  XMCINCLUDEDOWN      -->  -includedown
 </pre>
 
 ## Authentication
