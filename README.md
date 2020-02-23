@@ -86,6 +86,17 @@ Nearly all options that take a value can be set via environment variables:
   XMCINCLUDEDOWN      -->  -includedown
 </pre>
 
+### Examples
+
+1. `VlanLister -host xmc.example.com -insecurehttps -basicauth -userid root -secret abc123 -includedown -outfile xmc-vlans.csv`  
+   Connect to xmc.example.com as root using HTTP Basic Auth. Skip HTTPS certificate checking and include devices that are down. Write results to xmc-vlans.csv.
+2. `VlanLister -host xmc.example.com -basicauth -userid root -secret abc123 -outfile xmc-vlans.csv`  
+   Same as above, but with HTTPS certificate checking and without including down devices in the outfile.
+3. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xmc-vlans.csv -outfile xmc-vlans.xlsx`  
+   Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to both xmc-vlans.csv (in CSV format) and xmc-vlans.xlsx (in Excel format). File type is determined by suffix in this case.
+4. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xlsx:xmc-vlans.archive`  
+   Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to both xmc-vlans.archive in Excel format. File type is defined by prefix in this case.
+
 ## Authentication
 
 VlanLister supports two methods of authentication: OAuth2 and HTTP Basic Auth.
