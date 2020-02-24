@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	excelize "github.com/360EntSecGroup-Skylar/excelize"
 )
@@ -135,6 +136,8 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 		}
 		rowsWritten++
 	}
+
+	xlsx.SetSheetName("Sheet1", time.Now().Format(time.RFC3339))
 
 	if saveErr := xlsx.SaveAs(filename); saveErr != nil {
 		return rowsWritten, saveErr
