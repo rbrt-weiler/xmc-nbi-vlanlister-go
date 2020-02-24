@@ -15,6 +15,7 @@ import (
 	"fmt"
 	"os"
 	"strings"
+	"time"
 
 	excelize "github.com/360EntSecGroup-Skylar/excelize"
 )
@@ -112,7 +113,10 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 		if positionErr != nil {
 			return rowsWritten, positionErr
 		}
-		xlsx.SetCellValue("Sheet1", position, columnName)
+		valueErr := xlsx.SetCellValue("Sheet1", position, columnName)
+		if valueErr != nil {
+			stdErr.Printf("Could not set value for %s: %s", position, valueErr)
+		}
 		colIndex++
 	}
 
@@ -124,11 +128,16 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 			if positionErr != nil {
 				return rowsWritten, positionErr
 			}
-			xlsx.SetCellValue("Sheet1", position, element)
+			valueErr := xlsx.SetCellValue("Sheet1", position, element)
+			if valueErr != nil {
+				stdErr.Printf("Could not set value for %s: %s", position, valueErr)
+			}
 			colIndex++
 		}
 		rowsWritten++
 	}
+
+	xlsx.SetSheetName("Sheet1", time.Now().Format(time.RFC3339))
 
 	if saveErr := xlsx.SaveAs(filename); saveErr != nil {
 		return rowsWritten, saveErr

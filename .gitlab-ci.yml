@@ -18,8 +18,9 @@ after_script:
 # do not forget to set project variables
 include:
   - template: SAST.gitlab-ci.yml # GITLAB_FEATURES = "sast"
-  - template: License-Management.gitlab-ci.yml # GITLAB_FEATURES = "license_management"
-  - template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
+  #- template: Code-Quality.gitlab-ci.yml # GITLAB_FEATURES = "code_quality"
+  #- template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
+  #- template: License-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "license_scanning"
 
 variables:
   SAST_DISABLE_DIND: "true"
