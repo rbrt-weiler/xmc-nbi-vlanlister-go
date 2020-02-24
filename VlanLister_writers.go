@@ -112,7 +112,10 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 		if positionErr != nil {
 			return rowsWritten, positionErr
 		}
-		xlsx.SetCellValue("Sheet1", position, columnName)
+		valueErr := xlsx.SetCellValue("Sheet1", position, columnName)
+		if valueErr != nil {
+			stdErr.Printf("Could not set value for %s: %s", position, valueErr)
+		}
 		colIndex++
 	}
 
@@ -124,7 +127,10 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 			if positionErr != nil {
 				return rowsWritten, positionErr
 			}
-			xlsx.SetCellValue("Sheet1", position, element)
+			valueErr := xlsx.SetCellValue("Sheet1", position, element)
+			if valueErr != nil {
+				stdErr.Printf("Could not set value for %s: %s", position, valueErr)
+			}
 			colIndex++
 		}
 		rowsWritten++
