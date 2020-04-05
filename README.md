@@ -32,7 +32,7 @@ Tested with [go1.13](https://golang.org/doc/go1.13) against XMC 8.4.1.24.
 
 `VlanLister -h`:
 
-<pre>
+```text
 Available options:
   -basicauth
     	Use HTTP Basic Auth instead of OAuth
@@ -88,7 +88,7 @@ Nearly all options that take a value can be set via environment variables:
 Environment variables can also be configured via a file called .xmcenv,
 located in the current directory or in the home directory of the current
 user.
-</pre>
+```
 
 ### Examples
 
