@@ -65,10 +65,13 @@ Available options:
   -version
     	Print version information and exit
 
-It is required to provide at least one outfile. Valid types are CSV and
-Excel, determined by the file extensions '.csv' and '.xlsx' or by prefixing
-the outfile with either 'csv:' or 'xlsx:'. Prefixes take priority over
-suffixes.
+It is required to provide at least one outfile. File types are determined
+by the prefix FILETYPE: or the suffix .FILETYPE. Prefixes take priority
+over suffixes. Valid FILETYPEs are:
+  csv  -->  writes data a CSV file
+  stdout  -->  prints CSV data to stdout
+  xlsx  -->  writes data a XLSX file
+When using stdout, you should remove all stderr output (2>/dev/null).
 
 Nearly all options that take a value can be set via environment variables:
   XMCHOST             -->  -host
@@ -94,12 +97,14 @@ user.
 
 1. `VlanLister -host xmc.example.com -insecurehttps -basicauth -userid root -secret abc123 -includedown -outfile xmc-vlans.csv`  
    Connect to xmc.example.com as root using HTTP Basic Auth. Skip HTTPS certificate checking and include devices that are down. Write results to xmc-vlans.csv.
-2. `VlanLister -host xmc.example.com -basicauth -userid root -secret abc123 -outfile xmc-vlans.csv`  
+1. `VlanLister -host xmc.example.com -basicauth -userid root -secret abc123 -outfile xmc-vlans.csv`  
    Same as above, but with HTTPS certificate checking and without including down devices in the outfile.
-3. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xmc-vlans.csv -outfile xmc-vlans.xlsx`  
+1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xmc-vlans.csv -outfile xmc-vlans.xlsx`  
    Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to both xmc-vlans.csv (in CSV format) and xmc-vlans.xlsx (in Excel format). File type is determined by suffix in this case.
-4. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xlsx:xmc-vlans.archive`  
+1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xlsx:xmc-vlans.archive`  
    Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to xmc-vlans.archive in Excel format. File type is defined by prefix in this case.
+1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile stdout: 2>/dev/null`  
+   Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Print the result to stdout in CSV format while surpressing all output to stderr.
 
 ## Authentication
 
