@@ -36,7 +36,7 @@ import (
 
 const (
 	toolName    string = "VlanLister.go"
-	toolVersion string = "2.1.0"
+	toolVersion string = "2.2.0"
 	toolID      string = toolName + "/" + toolVersion
 	toolURL     string = "https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go"
 	envFileName string = ".xmcenv"
@@ -98,12 +98,8 @@ var (
 	client xmcnbiclient.NBIClient
 	// The usable instance of app configuration
 	config appConfig
-	// Logging-formatted stdout
-	stdOut = log.New(os.Stdout, "", log.LstdFlags)
 	// Logging-formatted stderr
 	stdErr = log.New(os.Stderr, "", log.LstdFlags)
-	// Columns used in outfiles
-	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
 )
 
 /*
@@ -148,10 +144,13 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "Available options:\n")
 		flag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\n")
-		fmt.Fprintf(os.Stderr, "It is required to provide at least one outfile. Valid types are CSV and\n")
-		fmt.Fprintf(os.Stderr, "Excel, determined by the file extensions '.csv' and '.xlsx' or by prefixing\n")
-		fmt.Fprintf(os.Stderr, "the outfile with either 'csv:' or 'xlsx:'. Prefixes take priority over\n")
-		fmt.Fprintf(os.Stderr, "suffixes.\n")
+		fmt.Fprintf(os.Stderr, "It is required to provide at least one outfile. File types are determined\n")
+		fmt.Fprintf(os.Stderr, "by the prefix FILETYPE: or the suffix .FILETYPE. Prefixes take priority\n")
+		fmt.Fprintf(os.Stderr, "over suffixes. Valid FILETYPEs are:\n")
+		fmt.Fprintf(os.Stderr, "  csv  -->  writes data a CSV file\n")
+		fmt.Fprintf(os.Stderr, "  stdout  -->  prints CSV data to stdout\n")
+		fmt.Fprintf(os.Stderr, "  xlsx  -->  writes data a XLSX file\n")
+		fmt.Fprintf(os.Stderr, "When using stdout, you should remove all stderr output (2>/dev/null).\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
 		fmt.Fprintf(os.Stderr, "  XMCHOST             -->  -host\n")

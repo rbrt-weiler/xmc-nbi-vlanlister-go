@@ -21,6 +21,23 @@ import (
 )
 
 /*
+##     ##    ###    ########   ######
+##     ##   ## ##   ##     ## ##    ##
+##     ##  ##   ##  ##     ## ##
+##     ## ##     ## ########   ######
+ ##   ##  ######### ##   ##         ##
+  ## ##   ##     ## ##    ##  ##    ##
+   ###    ##     ## ##     ##  ######
+*/
+
+var (
+	// Columns used in outfiles
+	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
+	// File types that are valid for writing
+	validFiletypes = [...]string{"csv", "stdout", "xlsx"}
+)
+
+/*
 ######## ##     ## ##    ##  ######   ######
 ##       ##     ## ###   ## ##    ## ##    ##
 ##       ##     ## ####  ## ##       ##
@@ -30,10 +47,26 @@ import (
 ##        #######  ##    ##  ######   ######
 */
 
+// Transforms an array of resultSets to CSV data
+func rsArrayToCSV(results []resultSet) (uint, string) {
+	var rowsWritten uint = 0
+	var rowData string
+	var csvData string = ""
+
+	for _, row := range results {
+		rowData = ""
+		for _, element := range row.ToArray() {
+			rowData = fmt.Sprintf("%s,\"%s\"", rowData, element)
+		}
+		csvData = fmt.Sprintf("%s%s\n", csvData, strings.TrimPrefix(rowData, ","))
+		rowsWritten++
+	}
+
+	return rowsWritten, csvData
+}
+
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
 func writeResults(filename string, results []resultSet) (uint, error) {
-	var validFiletypes = [...]string{"csv", "xlsx"}
-
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
@@ -42,6 +75,8 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 			switch filetype {
 			case "csv":
 				return writeResultsCSV(filename, results)
+			case "stdout":
+				return writeResultsStdout(filename, results)
 			case "xlsx":
 				return writeResultsXLSX(filename, results)
 			}
@@ -55,6 +90,8 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 			switch filetype {
 			case "csv":
 				return writeResultsCSV(filename, results)
+			case "stdout":
+				return writeResultsStdout(filename, results)
 			case "xlsx":
 				return writeResultsXLSX(filename, results)
 			}
@@ -67,6 +104,7 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 // Writes the results to outfile in CSV format
 func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
+	var rowData string
 
 	fileHandle, fileErr := os.Create(filename)
 	if fileErr != nil {
@@ -78,7 +116,12 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 	}
 	for _, row := range results {
-		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysUpDown, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
+		rowData = ""
+		for _, element := range row.ToArray() {
+			rowData = fmt.Sprintf("%s,\"%s\"", rowData, element)
+		}
+		rowData = fmt.Sprintf("%s\n", strings.TrimPrefix(rowData, ","))
+		_, writeErr := fileWriter.WriteString(rowData)
 		if writeErr != nil {
 			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 		}
@@ -97,6 +140,13 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 		stdErr.Printf("Could not close file handle: %s\n", fhErr)
 	}
 
+	return rowsWritten, nil
+}
+
+// Writes the results to stdout in CSV format
+func writeResultsStdout(filename string, results []resultSet) (uint, error) {
+	rowsWritten, csvData := rsArrayToCSV(results)
+	fmt.Print(csvData)
 	return rowsWritten, nil
 }
 

@@ -183,7 +183,7 @@ func discoverManagedDevices() ([]string, []string) {
 	devices := deviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
 	if jsonErr != nil {
-		stdOut.Fatalf("Could not decode JSON: %s\n", jsonErr)
+		stdErr.Fatalf("Could not decode JSON: %s\n", jsonErr)
 	}
 
 	var upDevices []string
