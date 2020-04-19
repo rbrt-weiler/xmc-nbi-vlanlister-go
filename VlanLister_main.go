@@ -100,8 +100,6 @@ var (
 	config appConfig
 	// Logging-formatted stderr
 	stdErr = log.New(os.Stderr, "", log.LstdFlags)
-	// Columns used in outfiles
-	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
 )
 
 /*
