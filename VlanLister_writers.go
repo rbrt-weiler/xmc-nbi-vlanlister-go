@@ -33,6 +33,8 @@ import (
 var (
 	// Columns used in outfiles
 	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
+	// File types that are valid for writing
+	validFiletypes = [...]string{"csv", "xlsx"}
 )
 
 /*
@@ -47,8 +49,6 @@ var (
 
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
 func writeResults(filename string, results []resultSet) (uint, error) {
-	var validFiletypes = [...]string{"csv", "xlsx"}
-
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
