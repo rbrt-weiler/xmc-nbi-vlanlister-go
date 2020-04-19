@@ -98,8 +98,6 @@ var (
 	client xmcnbiclient.NBIClient
 	// The usable instance of app configuration
 	config appConfig
-	// Logging-formatted stdout
-	stdOut = log.New(os.Stdout, "", log.LstdFlags)
 	// Logging-formatted stderr
 	stdErr = log.New(os.Stderr, "", log.LstdFlags)
 	// Columns used in outfiles
