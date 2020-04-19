@@ -82,6 +82,7 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 // Writes the results to outfile in CSV format
 func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 	var rowsWritten uint = 0
+	var rowData string
 
 	fileHandle, fileErr := os.Create(filename)
 	if fileErr != nil {
@@ -93,7 +94,12 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 		return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 	}
 	for _, row := range results {
-		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%d,\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\",\"%s\"\n", row.ID, row.BaseMac, row.IP, row.SysUpDown, row.SysName, row.SysLocation, row.IfName, row.IfStatus, strings.Join(row.Untagged, ","), strings.Join(row.Tagged, ",")))
+		rowData = ""
+		for _, element := range row.ToArray() {
+			rowData = fmt.Sprintf("%s,\"%s\"", rowData, element)
+		}
+		rowData = fmt.Sprintf("%s\n", strings.TrimPrefix(rowData, ","))
+		_, writeErr := fileWriter.WriteString(rowData)
 		if writeErr != nil {
 			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 		}
