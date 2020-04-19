@@ -34,5 +34,5 @@
         "workbench.editor.highlightModifiedTabs": true,
         "workbench.iconTheme": "vscode-icons"
     },
-    "postCreateCommand": "./.devcontainer/postCreate.sh"
+    "postCreateCommand": "/bin/bash ./.devcontainer/postCreate.sh"
 }
