@@ -62,4 +62,4 @@ Here are some general guidelines for contributing code to the project:
 * Merge requests must be filed against the master branch; merge requests that target other branches will be dismissed.
 * The preferred way to develop bugfixes/features is by using [Visual Studio Code Remote Development Containers](https://code.visualstudio.com/docs/remote/containers); a config is included with the project.
 
-Please keep in mind that every line of code contributed to the project will be licensed under [the project's license](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/LICENSE). After receiving the merge request, the code owner(s) will review it. All further communication will be handled via the merge request comments.
+Please keep in mind that every line of code contributed to the project will be licensed under [the project's license](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/-/blob/master/LICENSE). After receiving the merge request, the code owner(s) will review it. All further communication will be handled via the merge request comments.
