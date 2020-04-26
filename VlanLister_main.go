@@ -235,7 +235,7 @@ func main() {
 	sort.Strings(rediscoveredDevices)
 
 	queryResults := []resultSet{}
-	queryResultsNew := multipleDevices{}
+	queryResultsNew := []singleDevice{}
 	for _, deviceIP := range rediscoveredDevices {
 		deviceResult, deviceErr := queryDevice(deviceIP)
 		if deviceErr != nil {

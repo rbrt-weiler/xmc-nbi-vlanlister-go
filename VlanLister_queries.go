@@ -203,8 +203,6 @@ type singleDevice struct {
 	Ports       []devicePort `json:"ports"`
 }
 
-type multipleDevices []singleDevice
-
 /*
 ######## ##     ## ##    ##  ######   ######
 ##       ##     ## ###   ## ##    ## ##    ##
