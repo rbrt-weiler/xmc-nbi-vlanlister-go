@@ -53,31 +53,32 @@ const (
 	gqlDeviceDataQuery string = `
 		query {
 			network {
-			device(ip: "%s") {
-				id
-				up
-				baseMac
-				ip
-				sysName
-				sysLocation
-				nickName
-				entityData {
-				allPorts {
-					ifIndex
-					ifPhysAddress
-					ifName
-					ifAdminStatus
-					ifOperStatus
-					vlanList
+				device(ip: "%s") {
+					id
+					up
+					baseMac
+					ip
+					sysName
+					sysLocation
+					nickName
+					entityData {
+						allPorts {
+							ifIndex
+							ifPhysAddress
+							ifName
+							ifAdminStatus
+							ifOperStatus
+							vlanList
+						}
+					}
 				}
+				deviceVlans(ip: "%s") {
+					type
+					vid
+					name
+					primaryIp
+					netmask
 				}
-			}
-			deviceVlans(ip: "%s") {
-				type
-				vid
-				name
-				primaryIp
-				netmask
 			}
 		}
 	`
@@ -164,6 +165,39 @@ func (rs *resultSet) ToArray() []string {
 	retVal := []string{strconv.Itoa(rs.ID), rs.BaseMac, rs.IP, rs.SysUpDown, rs.SysName, rs.SysLocation, rs.IfName, rs.IfStatus, strings.Join(rs.Untagged, ","), strings.Join(rs.Tagged, ",")}
 	return retVal
 }
+
+type deviceVlans struct {
+	Type      string `json:"type"`
+	ID        int    `json:"id"`
+	Name      string `json:"name"`
+	PrimaryIP string `json:"primaryIp"`
+	Netmask   string `json:"netmask"`
+}
+
+type devicePorts struct {
+	Index         int    `json:"index"`
+	MACAddress    string `json:"macAddress"`
+	Name          string `json:"name"`
+	AdminStatus   string `json:"adminStatus"`
+	OperStatus    string `json:"operStatus"`
+	UntaggedVlans []int  `json:"untaggedVlans"`
+	TaggedVlans   []int  `json:"taggedVlans"`
+}
+
+type singleDevice struct {
+	ID          int           `json:"id"`
+	QueriedAt   string        `json:"queriedAt"`
+	Up          bool          `json:"up"`
+	BaseMAC     string        `json:"baseMac"`
+	IPAddress   string        `json:"ipAddress"`
+	SysName     string        `json:"sysName"`
+	SysLocation string        `json:"sysLocation"`
+	NickName    string        `json:"nickName"`
+	Vlans       []deviceVlans `json:"vlans"`
+	Ports       []devicePorts `json:"ports"`
+}
+
+type multipleDevices []singleDevice
 
 /*
 ######## ##     ## ##    ##  ######   ######
