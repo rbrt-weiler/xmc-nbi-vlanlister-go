@@ -12,6 +12,7 @@ package main
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -19,6 +20,20 @@ import (
 
 	excelize "github.com/360EntSecGroup-Skylar/excelize"
 )
+
+/*
+######## ##    ## ########  ########  ######
+   ##     ##  ##  ##     ## ##       ##    ##
+   ##      ####   ##     ## ##       ##
+   ##       ##    ########  ######    ######
+   ##       ##    ##        ##             ##
+   ##       ##    ##        ##       ##    ##
+   ##       ##    ##        ########  ######
+*/
+
+type deviceWrapper struct {
+	Devices []singleDevice `json:"devices"`
+}
 
 /*
 ##     ##    ###    ########   ######
@@ -34,7 +49,7 @@ var (
 	// Columns used in outfiles
 	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
 	// File types that are valid for writing
-	validFiletypes = [...]string{"csv", "stdout", "xlsx"}
+	validFiletypes = [...]string{"csv", "json", "stdout", "xlsx"}
 )
 
 /*
@@ -66,7 +81,7 @@ func rsArrayToCSV(results []resultSet) (uint, string) {
 }
 
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
-func writeResults(filename string, results []resultSet) (uint, error) {
+func writeResults(filename string, results []resultSet, resultsNew []singleDevice) (uint, error) {
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
@@ -75,6 +90,8 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 			switch filetype {
 			case "csv":
 				return writeResultsCSV(filename, results)
+			case "json":
+				return writeResultsJSON(filename, resultsNew)
 			case "stdout":
 				return writeResultsStdout(filename, results)
 			case "xlsx":
@@ -90,6 +107,8 @@ func writeResults(filename string, results []resultSet) (uint, error) {
 			switch filetype {
 			case "csv":
 				return writeResultsCSV(filename, results)
+			case "json":
+				return writeResultsJSON(filename, resultsNew)
 			case "stdout":
 				return writeResultsStdout(filename, results)
 			case "xlsx":
@@ -122,6 +141,43 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 		}
 		rowData = fmt.Sprintf("%s\n", strings.TrimPrefix(rowData, ","))
 		_, writeErr := fileWriter.WriteString(rowData)
+		if writeErr != nil {
+			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
+		}
+		flushErr := fileWriter.Flush()
+		if flushErr != nil {
+			stdErr.Printf("Could not flush file buffer: %s\n", flushErr)
+		}
+		rowsWritten++
+	}
+	syncErr := fileHandle.Sync()
+	if syncErr != nil {
+		stdErr.Printf("Could not sync file handle: %s\n", syncErr)
+	}
+	fhErr := fileHandle.Close()
+	if fhErr != nil {
+		stdErr.Printf("Could not close file handle: %s\n", fhErr)
+	}
+
+	return rowsWritten, nil
+}
+
+func writeResultsJSON(filename string, results []singleDevice) (uint, error) {
+	var rowsWritten uint = 0
+	var jsonStructure deviceWrapper = deviceWrapper{results}
+
+	json, jsonErr := json.MarshalIndent(jsonStructure, "", "    ")
+	if jsonErr != nil {
+		return rowsWritten, fmt.Errorf("Could not encode JSON: %s", jsonErr)
+	}
+
+	fileHandle, fileErr := os.Create(filename)
+	if fileErr != nil {
+		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
+	}
+	fileWriter := bufio.NewWriter(fileHandle)
+	for _, line := range strings.Split(string(json), "\n") {
+		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%s\n", line))
 		if writeErr != nil {
 			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
 		}
