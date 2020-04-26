@@ -132,15 +132,21 @@ type deviceData struct {
 				IP          string `json:"ip"`
 				EntityData  struct {
 					AllPorts []struct {
-						IfIndex      int      `json:"ifIndex"`
-						IfName       string   `json:"ifName"`
-						IfOperStatus string   `json:"ifOperStatus"`
-						VlanList     []string `json:"vlanList"`
+						IfIndex       int      `json:"ifIndex"`
+						IfPhysAddress string   `json:"ifPhysAddress"`
+						IfName        string   `json:"ifName"`
+						IfAdminStatus string   `json:"ifAdminStatus"`
+						IfOperStatus  string   `json:"ifOperStatus"`
+						VlanList      []string `json:"vlanList"`
 					} `json:"allPorts"`
 				} `json:"entityData"`
 			} `json:"device"`
 			DeviceVlans []struct {
-				Vid int `json:"vid"`
+				Type      string `json:"type"`
+				Vid       int    `json:"vid"`
+				Name      string `json:"name"`
+				PrimaryIP string `json:"primaryIp"`
+				Netmask   string `json:"netmask"`
 			} `json:"deviceVlans"`
 		} `json:"network"`
 	} `json:"data"`
@@ -166,7 +172,7 @@ func (rs *resultSet) ToArray() []string {
 	return retVal
 }
 
-type deviceVlans struct {
+type deviceVlan struct {
 	Type      string `json:"type"`
 	ID        int    `json:"id"`
 	Name      string `json:"name"`
@@ -174,7 +180,7 @@ type deviceVlans struct {
 	Netmask   string `json:"netmask"`
 }
 
-type devicePorts struct {
+type devicePort struct {
 	Index         int    `json:"index"`
 	MACAddress    string `json:"macAddress"`
 	Name          string `json:"name"`
@@ -185,16 +191,16 @@ type devicePorts struct {
 }
 
 type singleDevice struct {
-	ID          int           `json:"id"`
-	QueriedAt   string        `json:"queriedAt"`
-	Up          bool          `json:"up"`
-	BaseMAC     string        `json:"baseMac"`
-	IPAddress   string        `json:"ipAddress"`
-	SysName     string        `json:"sysName"`
-	SysLocation string        `json:"sysLocation"`
-	NickName    string        `json:"nickName"`
-	Vlans       []deviceVlans `json:"vlans"`
-	Ports       []devicePorts `json:"ports"`
+	ID          int          `json:"id"`
+	QueriedAt   string       `json:"queriedAt"`
+	Up          bool         `json:"up"`
+	BaseMAC     string       `json:"baseMac"`
+	IPAddress   string       `json:"ipAddress"`
+	SysName     string       `json:"sysName"`
+	SysLocation string       `json:"sysLocation"`
+	NickName    string       `json:"nickName"`
+	Vlans       []deviceVlan `json:"vlans"`
+	Ports       []devicePort `json:"ports"`
 }
 
 type multipleDevices []singleDevice
@@ -336,6 +342,72 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 			}
 		}
 		deviceResult = append(deviceResult, portResult)
+	}
+
+	return deviceResult, nil
+}
+
+func queryDeviceNew(deviceIP string) (singleDevice, error) {
+	var deviceResult singleDevice
+
+	deviceResult.QueriedAt = time.Now().Format(time.RFC3339)
+
+	body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
+	if bodyErr != nil {
+		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
+	}
+	proactiveTokenRefresh()
+
+	jsonData := deviceData{}
+	jsonErr := json.Unmarshal(body, &jsonData)
+	if jsonErr != nil {
+		return deviceResult, fmt.Errorf("Could not decode JSON: %s", jsonErr)
+	}
+
+	device := jsonData.Data.Network.Device
+	vlans := jsonData.Data.Network.DeviceVlans
+	ports := jsonData.Data.Network.Device.EntityData.AllPorts
+
+	stdErr.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
+
+	deviceResult.ID = device.ID
+	deviceResult.Up = device.Up
+	deviceResult.BaseMAC = device.BaseMac
+	deviceResult.IPAddress = device.IP
+	deviceResult.SysName = device.SysName
+	deviceResult.SysLocation = device.SysLocation
+	deviceResult.NickName = device.NickName
+
+	for _, vlan := range vlans {
+		vlanResult := deviceVlan{}
+		vlanResult.Type = vlan.Type
+		vlanResult.ID = vlan.Vid
+		vlanResult.Name = vlan.Name
+		vlanResult.PrimaryIP = vlan.PrimaryIP
+		vlanResult.Netmask = vlan.Netmask
+		deviceResult.Vlans = append(deviceResult.Vlans, vlanResult)
+	}
+
+	for _, port := range ports {
+		portResult := devicePort{}
+		portResult.Index = port.IfIndex
+		portResult.MACAddress = port.IfPhysAddress
+		portResult.Name = port.IfName
+		portResult.AdminStatus = port.IfAdminStatus
+		portResult.OperStatus = port.IfOperStatus
+		for _, vlan := range port.VlanList {
+			vid, vidError := strconv.Atoi(strings.Split(vlan, "[")[0])
+			if vidError != nil {
+				stdErr.Printf("Could not convert VLAN ID: %s\n", vidError)
+				continue
+			}
+			if strings.Contains(vlan, "Untagged") {
+				portResult.UntaggedVlans = append(portResult.UntaggedVlans, vid)
+			} else if strings.Contains(vlan, "Tagged") {
+				portResult.TaggedVlans = append(portResult.TaggedVlans, vid)
+			}
+		}
+		deviceResult.Ports = append(deviceResult.Ports, portResult)
 	}
 
 	return deviceResult, nil
