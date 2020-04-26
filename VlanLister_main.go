@@ -235,6 +235,7 @@ func main() {
 	sort.Strings(rediscoveredDevices)
 
 	queryResults := []resultSet{}
+	queryResultsNew := multipleDevices{}
 	for _, deviceIP := range rediscoveredDevices {
 		deviceResult, deviceErr := queryDevice(deviceIP)
 		if deviceErr != nil {
@@ -242,6 +243,12 @@ func main() {
 			continue
 		}
 		queryResults = append(queryResults, deviceResult...)
+		deviceResultNew, deviceErrNew := queryDeviceNew(deviceIP)
+		if deviceErrNew != nil {
+			stdErr.Println(deviceErrNew)
+			continue
+		}
+		queryResultsNew = append(queryResultsNew, deviceResultNew)
 	}
 
 	var writeRows uint
