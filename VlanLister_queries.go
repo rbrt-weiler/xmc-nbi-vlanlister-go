@@ -53,26 +53,31 @@ const (
 	gqlDeviceDataQuery string = `
 		query {
 			network {
-				device(ip: "%s") {
-					id
-					up
-					sysName
-					sysLocation
-					nickName
-					baseMac
-					ip
-					entityData {
-						allPorts {
-							ifIndex
-							ifName
-							ifOperStatus
-							vlanList
-						}
-					}
+			device(ip: "%s") {
+				id
+				up
+				baseMac
+				ip
+				sysName
+				sysLocation
+				nickName
+				entityData {
+				allPorts {
+					ifIndex
+					ifPhysAddress
+					ifName
+					ifAdminStatus
+					ifOperStatus
+					vlanList
 				}
-				deviceVlans(ip: "%s") {
-					vid
 				}
+			}
+			deviceVlans(ip: "%s") {
+				type
+				vid
+				name
+				primaryIp
+				netmask
 			}
 		}
 	`
