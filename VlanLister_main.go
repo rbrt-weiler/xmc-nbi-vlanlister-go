@@ -17,7 +17,6 @@ import (
 	"os"
 	"path"
 	"sort"
-	"strings"
 
 	godotenv "github.com/joho/godotenv"
 	envordef "gitlab.com/rbrt-weiler/go-module-envordef"
@@ -41,47 +40,6 @@ const (
 	toolURL     string = "https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go"
 	envFileName string = ".xmcenv"
 )
-
-/*
-######## ##    ## ########  ########  ######
-   ##     ##  ##  ##     ## ##       ##    ##
-   ##      ####   ##     ## ##       ##
-   ##       ##    ########  ######    ######
-   ##       ##    ##        ##             ##
-   ##       ##    ##        ##       ##    ##
-   ##       ##    ##        ########  ######
-*/
-
-type outfileArray []string
-
-func (oa *outfileArray) String() string {
-	return strings.Join(*oa, ",")
-}
-
-func (oa *outfileArray) Set(value string) error {
-	*oa = append(*oa, value)
-	return nil
-}
-
-// Stores configuration used throughout the app
-type appConfig struct {
-	XMCHost         string
-	XMCPort         uint
-	XMCPath         string
-	HTTPTimeout     uint
-	NoHTTPS         bool
-	InsecureHTTPS   bool
-	BasicAuth       bool
-	XMCUserID       string
-	XMCSecret       string
-	XMCQuery        string
-	NoRefresh       bool
-	RefreshInterval uint
-	RefreshWait     uint
-	IncludeDown     bool
-	Outfile         outfileArray
-	PrintVersion    bool
-}
 
 /*
 ##     ##    ###    ########   ######
