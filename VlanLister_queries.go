@@ -17,6 +17,8 @@ import (
 	"strconv"
 	"strings"
 	"time"
+
+	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
 
 /*
@@ -95,14 +97,14 @@ const (
 */
 
 // Fetches the complete list of managed devices from XMC
-func discoverManagedDevices() ([]string, []string) {
+func discoverManagedDevices(client *xmcnbiclient.NBIClient) ([]string, []string) {
 	stdErr.Println("Discovering managed devices...")
 
 	body, bodyErr := client.QueryAPI(gqlDeviceListQuery)
 	if bodyErr != nil {
 		stdErr.Fatalf("Could not fetch device list: %s\n", bodyErr)
 	}
-	proactiveTokenRefresh()
+	proactiveTokenRefresh(client)
 
 	devices := xmcDeviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
@@ -126,7 +128,7 @@ func discoverManagedDevices() ([]string, []string) {
 }
 
 // Triggers a rediscover for a list of devices
-func rediscoverDevices(ipList []string) []string {
+func rediscoverDevices(client *xmcnbiclient.NBIClient, ipList []string) []string {
 	var rediscoveredDevices []string
 	for _, deviceIP := range ipList {
 		body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlMutationQuery, deviceIP))
@@ -134,7 +136,7 @@ func rediscoverDevices(ipList []string) []string {
 			stdErr.Printf("Could not mutate device %s: %s\n", deviceIP, bodyErr)
 			continue
 		}
-		proactiveTokenRefresh()
+		proactiveTokenRefresh(client)
 
 		mutation := xmcMutationMessage{}
 		jsonErr := json.Unmarshal(body, &mutation)
@@ -154,7 +156,7 @@ func rediscoverDevices(ipList []string) []string {
 		time.Sleep(time.Second * time.Duration(config.RefreshInterval))
 	}
 	for i := config.RefreshWait; i > 0; i-- {
-		proactiveTokenRefresh()
+		proactiveTokenRefresh(client)
 		stdErr.Printf("Waiting for %d minute(s) to finish rediscover...\n", i)
 		time.Sleep(time.Minute * time.Duration(1))
 	}
@@ -162,14 +164,14 @@ func rediscoverDevices(ipList []string) []string {
 }
 
 // Fetches the detailed data for a single device from XMC
-func queryDevice(deviceIP string) ([]resultSet, error) {
+func queryDevice(client *xmcnbiclient.NBIClient, deviceIP string) ([]resultSet, error) {
 	var deviceResult []resultSet
 
 	body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
 	if bodyErr != nil {
 		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
 	}
-	proactiveTokenRefresh()
+	proactiveTokenRefresh(client)
 
 	jsonData := xmcDeviceData{}
 	jsonErr := json.Unmarshal(body, &jsonData)
@@ -226,7 +228,7 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	return deviceResult, nil
 }
 
-func queryDeviceNew(deviceIP string) (singleDevice, error) {
+func queryDeviceNew(client *xmcnbiclient.NBIClient, deviceIP string) (singleDevice, error) {
 	var deviceResult singleDevice
 
 	deviceResult.QueriedAt = time.Now().Format(time.RFC3339)
@@ -235,7 +237,7 @@ func queryDeviceNew(deviceIP string) (singleDevice, error) {
 	if bodyErr != nil {
 		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
 	}
-	proactiveTokenRefresh()
+	proactiveTokenRefresh(client)
 
 	jsonData := xmcDeviceData{}
 	jsonErr := json.Unmarshal(body, &jsonData)

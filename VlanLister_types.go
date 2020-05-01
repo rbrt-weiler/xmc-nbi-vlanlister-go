@@ -123,6 +123,7 @@ func (rs *resultSet) ToArray() []string {
 // << Old data storage construct
 // New data storage construct >>
 
+// Stores data related to the VLANs configured on a device.
 type deviceVlan struct {
 	Type      string `json:"type"`
 	ID        int    `json:"id"`
@@ -131,6 +132,7 @@ type deviceVlan struct {
 	Netmask   string `json:"netmask"`
 }
 
+// Stores data related to the ports of a device.
 type devicePort struct {
 	Index         int    `json:"index"`
 	MACAddress    string `json:"macAddress"`
@@ -141,6 +143,7 @@ type devicePort struct {
 	TaggedVlans   []int  `json:"taggedVlans"`
 }
 
+// Stores all data related to a single device.
 type singleDevice struct {
 	ID          int          `json:"id"`
 	QueriedAt   string       `json:"queriedAt"`
@@ -154,7 +157,8 @@ type singleDevice struct {
 	Ports       []devicePort `json:"ports"`
 }
 
-type deviceWrapper struct {
+// Stores multiple devices.
+type devicesWrapper struct {
 	Devices []singleDevice `json:"devices"`
 }
 

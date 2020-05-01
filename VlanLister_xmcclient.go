@@ -25,8 +25,8 @@ import (
 */
 
 // Initializes the actual XMC client
-func initializeClient() {
-	client = xmcnbiclient.New(config.XMCHost)
+func initializeClient(client *xmcnbiclient.NBIClient) {
+	*client = xmcnbiclient.New(config.XMCHost)
 	client.SetUserAgent(toolID)
 	client.UseHTTPS()
 	if config.NoHTTPS {
@@ -47,7 +47,7 @@ func initializeClient() {
 }
 
 // Refreshes the OAuth token if it is to expire soon
-func proactiveTokenRefresh() {
+func proactiveTokenRefresh(client *xmcnbiclient.NBIClient) {
 	if client.Authentication.Type == xmcnbiclient.AuthTypeOAuth {
 		if client.AccessToken.ExpiresSoon(config.HTTPTimeout + 1) {
 			go client.RetrieveOAuthToken()

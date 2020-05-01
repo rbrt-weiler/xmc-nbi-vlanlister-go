@@ -150,7 +150,7 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 
 func writeResultsJSON(filename string, results []singleDevice) (uint, error) {
 	var rowsWritten uint = 0
-	var jsonStructure deviceWrapper = deviceWrapper{results}
+	var jsonStructure devicesWrapper = devicesWrapper{results}
 
 	json, jsonErr := json.MarshalIndent(jsonStructure, "", "    ")
 	if jsonErr != nil {

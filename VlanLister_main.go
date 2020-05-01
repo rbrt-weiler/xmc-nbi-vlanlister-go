@@ -53,7 +53,7 @@ const (
 
 var (
 	// The actual client that connects to XMC
-	client xmcnbiclient.NBIClient
+	xmcClient xmcnbiclient.NBIClient
 	// The usable instance of app configuration
 	config appConfig
 	// Logging-formatted stderr
@@ -177,15 +177,15 @@ func main() {
 		stdErr.Fatal("outfile is required.")
 	}
 
-	initializeClient()
+	initializeClient(&xmcClient)
 
-	upDevices, downDevices := discoverManagedDevices()
+	upDevices, downDevices := discoverManagedDevices(&xmcClient)
 
 	var rediscoveredDevices []string
 	if config.NoRefresh {
 		rediscoveredDevices = upDevices
 	} else {
-		rediscoveredDevices = rediscoverDevices(upDevices)
+		rediscoveredDevices = rediscoverDevices(&xmcClient, upDevices)
 	}
 	if config.IncludeDown {
 		rediscoveredDevices = append(rediscoveredDevices, downDevices...)
@@ -195,13 +195,13 @@ func main() {
 	queryResults := []resultSet{}
 	queryResultsNew := []singleDevice{}
 	for _, deviceIP := range rediscoveredDevices {
-		deviceResult, deviceErr := queryDevice(deviceIP)
+		deviceResult, deviceErr := queryDevice(&xmcClient, deviceIP)
 		if deviceErr != nil {
 			stdErr.Println(deviceErr)
 			continue
 		}
 		queryResults = append(queryResults, deviceResult...)
-		deviceResultNew, deviceErrNew := queryDeviceNew(deviceIP)
+		deviceResultNew, deviceErrNew := queryDeviceNew(&xmcClient, deviceIP)
 		if deviceErrNew != nil {
 			stdErr.Println(deviceErrNew)
 			continue
