@@ -42,8 +42,8 @@ type appConfig struct {
 
 // Old data storage construct >>
 
-// Used for parsing the list of devices returned by XMC
-type deviceList struct {
+// Used for parsing the list of devices returned by XMC.
+type xmcDeviceList struct {
 	Data struct {
 		Network struct {
 			Devices []struct {
@@ -54,8 +54,8 @@ type deviceList struct {
 	} `json:"data"`
 }
 
-// Used to parse the result of each single mutation (device refresh)
-type mutationMessage struct {
+// Used to parse the result returned by XMC for each single mutation (device refresh).
+type xmcMutationMessage struct {
 	Data struct {
 		Network struct {
 			RediscoverDevices struct {
@@ -66,8 +66,8 @@ type mutationMessage struct {
 	} `json:"data"`
 }
 
-// Used to store the result of ports and VLANs for each single device
-type deviceData struct {
+// Used to parse the result returned by XMC for each single device.
+type xmcDeviceData struct {
 	Data struct {
 		Network struct {
 			Device struct {

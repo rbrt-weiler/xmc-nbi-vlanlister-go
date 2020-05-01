@@ -104,7 +104,7 @@ func discoverManagedDevices() ([]string, []string) {
 	}
 	proactiveTokenRefresh()
 
-	devices := deviceList{}
+	devices := xmcDeviceList{}
 	jsonErr := json.Unmarshal(body, &devices)
 	if jsonErr != nil {
 		stdErr.Fatalf("Could not decode JSON: %s\n", jsonErr)
@@ -136,7 +136,7 @@ func rediscoverDevices(ipList []string) []string {
 		}
 		proactiveTokenRefresh()
 
-		mutation := mutationMessage{}
+		mutation := xmcMutationMessage{}
 		jsonErr := json.Unmarshal(body, &mutation)
 		if jsonErr != nil {
 			stdErr.Printf("Could not decode JSON: %s\n", jsonErr)
@@ -171,7 +171,7 @@ func queryDevice(deviceIP string) ([]resultSet, error) {
 	}
 	proactiveTokenRefresh()
 
-	jsonData := deviceData{}
+	jsonData := xmcDeviceData{}
 	jsonErr := json.Unmarshal(body, &jsonData)
 	if jsonErr != nil {
 		return deviceResult, fmt.Errorf("Could not decode JSON: %s", jsonErr)
@@ -237,7 +237,7 @@ func queryDeviceNew(deviceIP string) (singleDevice, error) {
 	}
 	proactiveTokenRefresh()
 
-	jsonData := deviceData{}
+	jsonData := xmcDeviceData{}
 	jsonErr := json.Unmarshal(body, &jsonData)
 	if jsonErr != nil {
 		return deviceResult, fmt.Errorf("Could not decode JSON: %s", jsonErr)
