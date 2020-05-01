@@ -67,7 +67,7 @@ func rsArrayToCSV(results []resultSet) (uint, string) {
 }
 
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
-func writeResults(filename string, results []resultSet, resultsNew []singleDevice) (uint, error) {
+func writeResults(filename string, results []resultSet, resultsNew devicesWrapper) (uint, error) {
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
@@ -148,11 +148,10 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 	return rowsWritten, nil
 }
 
-func writeResultsJSON(filename string, results []singleDevice) (uint, error) {
+func writeResultsJSON(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
-	var jsonStructure devicesWrapper = devicesWrapper{results}
 
-	json, jsonErr := json.MarshalIndent(jsonStructure, "", "    ")
+	json, jsonErr := json.MarshalIndent(results, "", "    ")
 	if jsonErr != nil {
 		return rowsWritten, fmt.Errorf("Could not encode JSON: %s", jsonErr)
 	}

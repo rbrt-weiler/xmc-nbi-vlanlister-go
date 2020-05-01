@@ -212,7 +212,7 @@ func main() {
 	var writeRows uint
 	var writeErr error
 	for _, outfile := range config.Outfile {
-		writeRows, writeErr = writeResults(outfile, queryResults, queryResultsNew)
+		writeRows, writeErr = writeResults(outfile, queryResults, devicesWrapper{queryResultsNew})
 		if writeErr != nil {
 			stdErr.Println(writeErr)
 		} else {
