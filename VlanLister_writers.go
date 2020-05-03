@@ -12,7 +12,6 @@ package main
 
 import (
 	"bufio"
-	"encoding/json"
 	"fmt"
 	"os"
 	"strings"
@@ -32,8 +31,6 @@ import (
 */
 
 var (
-	// Columns used in outfiles
-	tableColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
 	// File types that are valid for writing
 	validFiletypes = [...]string{"csv", "json", "stdout", "xlsx"}
 )
@@ -75,11 +72,11 @@ func writeResults(filename string, results []resultSet, resultsNew devicesWrappe
 			filename = strings.TrimPrefix(filename, prefix)
 			switch filetype {
 			case "csv":
-				return writeResultsCSV(filename, results)
+				return writeResultsCSV(filename, resultsNew)
 			case "json":
 				return writeResultsJSON(filename, resultsNew)
 			case "stdout":
-				return writeResultsStdout(filename, results)
+				return writeResultsStdout(filename, resultsNew)
 			case "xlsx":
 				return writeResultsXLSX(filename, results)
 			}
@@ -92,11 +89,11 @@ func writeResults(filename string, results []resultSet, resultsNew devicesWrappe
 		if strings.HasSuffix(filename, suffix) {
 			switch filetype {
 			case "csv":
-				return writeResultsCSV(filename, results)
+				return writeResultsCSV(filename, resultsNew)
 			case "json":
 				return writeResultsJSON(filename, resultsNew)
 			case "stdout":
-				return writeResultsStdout(filename, results)
+				return writeResultsStdout(filename, resultsNew)
 			case "xlsx":
 				return writeResultsXLSX(filename, results)
 			}
@@ -107,28 +104,23 @@ func writeResults(filename string, results []resultSet, resultsNew devicesWrappe
 }
 
 // Writes the results to outfile in CSV format
-func writeResultsCSV(filename string, results []resultSet) (uint, error) {
+func writeResultsCSV(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
-	var rowData string
+
+	csvData, csvError := results.ToCSV()
+	if csvError != nil {
+		return rowsWritten, fmt.Errorf("Could not convert data to CSV: %s", csvError)
+	}
 
 	fileHandle, fileErr := os.Create(filename)
 	if fileErr != nil {
-		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
+		return rowsWritten, fmt.Errorf("Could not create outfile: %s", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
-	_, writeErr := fileWriter.WriteString(fmt.Sprintf("%s\n", strings.Join(tableColumns[0:10], ",")))
-	if writeErr != nil {
-		return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
-	}
-	for _, row := range results {
-		rowData = ""
-		for _, element := range row.ToArray() {
-			rowData = fmt.Sprintf("%s,\"%s\"", rowData, element)
-		}
-		rowData = fmt.Sprintf("%s\n", strings.TrimPrefix(rowData, ","))
-		_, writeErr := fileWriter.WriteString(rowData)
+	for _, line := range strings.Split(csvData, "\n") {
+		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%s\n", line))
 		if writeErr != nil {
-			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
+			return rowsWritten, fmt.Errorf("Could not write to outfile: %s", writeErr)
 		}
 		flushErr := fileWriter.Flush()
 		if flushErr != nil {
@@ -151,20 +143,20 @@ func writeResultsCSV(filename string, results []resultSet) (uint, error) {
 func writeResultsJSON(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
 
-	json, jsonErr := json.MarshalIndent(results, "", "    ")
+	jsonData, jsonErr := results.ToJSON()
 	if jsonErr != nil {
 		return rowsWritten, fmt.Errorf("Could not encode JSON: %s", jsonErr)
 	}
 
 	fileHandle, fileErr := os.Create(filename)
 	if fileErr != nil {
-		return rowsWritten, fmt.Errorf("Could not write outfile: %s", fileErr)
+		return rowsWritten, fmt.Errorf("Could not create outfile: %s", fileErr)
 	}
 	fileWriter := bufio.NewWriter(fileHandle)
-	for _, line := range strings.Split(string(json), "\n") {
+	for _, line := range strings.Split(jsonData, "\n") {
 		_, writeErr := fileWriter.WriteString(fmt.Sprintf("%s\n", line))
 		if writeErr != nil {
-			return rowsWritten, fmt.Errorf("Could not write outfile: %s", writeErr)
+			return rowsWritten, fmt.Errorf("Could not write to outfile: %s", writeErr)
 		}
 		flushErr := fileWriter.Flush()
 		if flushErr != nil {
@@ -185,9 +177,19 @@ func writeResultsJSON(filename string, results devicesWrapper) (uint, error) {
 }
 
 // Writes the results to stdout in CSV format
-func writeResultsStdout(filename string, results []resultSet) (uint, error) {
-	rowsWritten, csvData := rsArrayToCSV(results)
-	fmt.Print(csvData)
+func writeResultsStdout(filename string, results devicesWrapper) (uint, error) {
+	var rowsWritten uint = 0
+
+	csvData, csvError := results.ToCSV()
+	if csvError != nil {
+		return rowsWritten, fmt.Errorf("Could not convert data to CSV: %s", csvError)
+	}
+
+	for _, line := range strings.Split(csvData, "\n") {
+		fmt.Printf("%s\n", line)
+		rowsWritten++
+	}
+
 	return rowsWritten, nil
 }
 
@@ -199,7 +201,7 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 
 	xlsx := excelize.NewFile()
 
-	for _, columnName := range tableColumns {
+	for _, columnName := range csvColumns {
 		position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
 		if positionErr != nil {
 			return rowsWritten, positionErr
@@ -210,6 +212,7 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 		}
 		colIndex++
 	}
+	rowsWritten++
 
 	for _, row := range results {
 		colIndex = 1

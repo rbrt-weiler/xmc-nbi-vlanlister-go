@@ -31,6 +31,11 @@ const (
 	csvFormatString string = `"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"`
 )
 
+var (
+	// Columns used in outfiles
+	csvColumns = [...]string{"ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"}
+)
+
 /*
 ######## ##    ## ########  ########  ######
    ##     ##  ##  ##     ## ##       ##    ##
@@ -208,33 +213,48 @@ type devicesWrapper struct {
    ##       ##    ##        ########    ##        #######  ##    ##  ######   ######
 */
 
+func (sd *singleDevice) ToCSVRows() ([]string, error) {
+	var result []string
+	var sysID string
+	var sysUpDown string
+	var systemVlanIDs []string
+
+	sysID = strconv.Itoa(sd.ID)
+	sysUpDown = "down"
+	if sd.Up {
+		sysUpDown = "up"
+	}
+	for _, vlan := range sd.Vlans {
+		systemVlanIDs = append(systemVlanIDs, strconv.Itoa(vlan.ID))
+	}
+	result = append(result, fmt.Sprintf(csvFormatString, sysID, sd.BaseMAC, sd.IPAddress, sysUpDown, sd.SysName, sd.SysLocation, "SYSTEM", "N/A", "", strings.Join(systemVlanIDs, ",")))
+	for _, port := range sd.Ports {
+		var portUntaggedVlans []string
+		var portTaggedVlans []string
+		for untaggedID := range port.UntaggedVlans {
+			portTaggedVlans = append(portTaggedVlans, strconv.Itoa(untaggedID))
+		}
+		for taggedID := range port.TaggedVlans {
+			portTaggedVlans = append(portTaggedVlans, strconv.Itoa(taggedID))
+		}
+		result = append(result, fmt.Sprintf(csvFormatString, sysID, sd.BaseMAC, sd.IPAddress, sysUpDown, sd.SysName, sd.SysLocation, port.Name, port.OperStatus, strings.Join(portUntaggedVlans, ","), strings.Join(portTaggedVlans, ",")))
+	}
+
+	return result, nil
+}
+
 func (dw *devicesWrapper) ToCSV() (string, error) {
 	var result []string
-	const csvFormatString string = `"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"`
 
-	result = append(result, fmt.Sprintf(csvFormatString, "ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"))
+	result = append(result, fmt.Sprintf(csvFormatString, csvColumns[0], csvColumns[1], csvColumns[2], csvColumns[3], csvColumns[4], csvColumns[5], csvColumns[6], csvColumns[7], csvColumns[8], csvColumns[9]))
 
 	for _, dev := range dw.Devices {
-		var systemVlanIDs []string
-		var sysUpDown string
-		for _, vlan := range dev.Vlans {
-			systemVlanIDs = append(systemVlanIDs, strconv.Itoa(vlan.ID))
+		csvRows, csvRowsError := dev.ToCSVRows()
+		if csvRowsError != nil {
+			return "", fmt.Errorf("Could not convert device to CSV: %s", csvRowsError)
 		}
-		sysUpDown = "down"
-		if dev.Up {
-			sysUpDown = "up"
-		}
-		result = append(result, fmt.Sprintf(csvFormatString, strconv.Itoa(dev.ID), dev.BaseMAC, dev.IPAddress, sysUpDown, dev.SysName, dev.SysLocation, "SYSTEM", "N/A", "", strings.Join(systemVlanIDs, ",")))
-		for _, port := range dev.Ports {
-			var portUntaggedVlans []string
-			var portTaggedVlans []string
-			for untaggedID := range port.UntaggedVlans {
-				portTaggedVlans = append(portTaggedVlans, strconv.Itoa(untaggedID))
-			}
-			for taggedID := range port.TaggedVlans {
-				portTaggedVlans = append(portTaggedVlans, strconv.Itoa(taggedID))
-			}
-			result = append(result, fmt.Sprintf(csvFormatString, strconv.Itoa(dev.ID), dev.BaseMAC, dev.IPAddress, sysUpDown, dev.SysName, dev.SysLocation, port.Name, port.OperStatus, strings.Join(portUntaggedVlans, ","), strings.Join(portTaggedVlans, ",")))
+		for row := range csvRows {
+			result = append(result, csvRows[row])
 		}
 	}
 
