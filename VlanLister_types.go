@@ -1,9 +1,45 @@
 package main
 
+/*
+#### ##     ## ########   #######  ########  ########  ######
+ ##  ###   ### ##     ## ##     ## ##     ##    ##    ##    ##
+ ##  #### #### ##     ## ##     ## ##     ##    ##    ##
+ ##  ## ### ## ########  ##     ## ########     ##     ######
+ ##  ##     ## ##        ##     ## ##   ##      ##          ##
+ ##  ##     ## ##        ##     ## ##    ##     ##    ##    ##
+#### ##     ## ##         #######  ##     ##    ##     ######
+*/
+
 import (
+	"encoding/json"
+	"fmt"
 	"strconv"
 	"strings"
 )
+
+/*
+ ######   #######  ##    ##  ######  ########    ###    ##    ## ########  ######
+##    ## ##     ## ###   ## ##    ##    ##      ## ##   ###   ##    ##    ##    ##
+##       ##     ## ####  ## ##          ##     ##   ##  ####  ##    ##    ##
+##       ##     ## ## ## ##  ######     ##    ##     ## ## ## ##    ##     ######
+##       ##     ## ##  ####       ##    ##    ######### ##  ####    ##          ##
+##    ## ##     ## ##   ### ##    ##    ##    ##     ## ##   ###    ##    ##    ##
+ ######   #######  ##    ##  ######     ##    ##     ## ##    ##    ##     ######
+*/
+
+const (
+	csvFormatString string = `"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"`
+)
+
+/*
+######## ##    ## ########  ########  ######
+   ##     ##  ##  ##     ## ##       ##    ##
+   ##      ####   ##     ## ##       ##
+   ##       ##    ########  ######    ######
+   ##       ##    ##        ##             ##
+   ##       ##    ##        ##       ##    ##
+   ##       ##    ##        ########  ######
+*/
 
 // Stores an array of strings.
 // Used for storing multiple "outfile" CLI arguments. flags needs the associated functions.
@@ -160,6 +196,57 @@ type singleDevice struct {
 // Stores multiple devices.
 type devicesWrapper struct {
 	Devices []singleDevice `json:"devices"`
+}
+
+/*
+######## ##    ## ########  ########    ######## ##     ## ##    ##  ######   ######
+   ##     ##  ##  ##     ## ##          ##       ##     ## ###   ## ##    ## ##    ##
+   ##      ####   ##     ## ##          ##       ##     ## ####  ## ##       ##
+   ##       ##    ########  ######      ######   ##     ## ## ## ## ##        ######
+   ##       ##    ##        ##          ##       ##     ## ##  #### ##             ##
+   ##       ##    ##        ##          ##       ##     ## ##   ### ##    ## ##    ##
+   ##       ##    ##        ########    ##        #######  ##    ##  ######   ######
+*/
+
+func (dw *devicesWrapper) ToCSV() (string, error) {
+	var result []string
+	const csvFormatString string = `"%s","%s","%s","%s","%s","%s","%s","%s","%s","%s"`
+
+	result = append(result, fmt.Sprintf(csvFormatString, "ID", "BaseMac", "IP", "SysUpDown", "SysName", "SysLocation", "IfName", "IfStatus", "Untagged", "Tagged"))
+
+	for _, dev := range dw.Devices {
+		var systemVlanIDs []string
+		var sysUpDown string
+		for _, vlan := range dev.Vlans {
+			systemVlanIDs = append(systemVlanIDs, strconv.Itoa(vlan.ID))
+		}
+		sysUpDown = "down"
+		if dev.Up {
+			sysUpDown = "up"
+		}
+		result = append(result, fmt.Sprintf(csvFormatString, strconv.Itoa(dev.ID), dev.BaseMAC, dev.IPAddress, sysUpDown, dev.SysName, dev.SysLocation, "SYSTEM", "N/A", "", strings.Join(systemVlanIDs, ",")))
+		for _, port := range dev.Ports {
+			var portUntaggedVlans []string
+			var portTaggedVlans []string
+			for untaggedID := range port.UntaggedVlans {
+				portTaggedVlans = append(portTaggedVlans, strconv.Itoa(untaggedID))
+			}
+			for taggedID := range port.TaggedVlans {
+				portTaggedVlans = append(portTaggedVlans, strconv.Itoa(taggedID))
+			}
+			result = append(result, fmt.Sprintf(csvFormatString, strconv.Itoa(dev.ID), dev.BaseMAC, dev.IPAddress, sysUpDown, dev.SysName, dev.SysLocation, port.Name, port.OperStatus, strings.Join(portUntaggedVlans, ","), strings.Join(portTaggedVlans, ",")))
+		}
+	}
+
+	return strings.Join(result, "\n"), nil
+}
+
+func (dw *devicesWrapper) ToJSON() (string, error) {
+	json, jsonErr := json.MarshalIndent(dw, "", "    ")
+	if jsonErr != nil {
+		return "", fmt.Errorf("Could not encode JSON: %s", jsonErr)
+	}
+	return string(json), nil
 }
 
 // << New data storage construct
