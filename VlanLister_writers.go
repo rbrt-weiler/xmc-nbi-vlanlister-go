@@ -78,7 +78,7 @@ func writeResults(filename string, results []resultSet, resultsNew devicesWrappe
 			case "stdout":
 				return writeResultsStdout(filename, resultsNew)
 			case "xlsx":
-				return writeResultsXLSX(filename, results)
+				return writeResultsXLSX(filename, resultsNew)
 			}
 		}
 	}
@@ -95,7 +95,7 @@ func writeResults(filename string, results []resultSet, resultsNew devicesWrappe
 			case "stdout":
 				return writeResultsStdout(filename, resultsNew)
 			case "xlsx":
-				return writeResultsXLSX(filename, results)
+				return writeResultsXLSX(filename, resultsNew)
 			}
 		}
 	}
@@ -194,7 +194,7 @@ func writeResultsStdout(filename string, results devicesWrapper) (uint, error) {
 }
 
 // Writes the results to outfile in XLSX format
-func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
+func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
 	var colIndex int = 1
 	var rowIndex int = 1
@@ -214,21 +214,29 @@ func writeResultsXLSX(filename string, results []resultSet) (uint, error) {
 	}
 	rowsWritten++
 
-	for _, row := range results {
-		colIndex = 1
-		rowIndex++
-		for _, element := range row.ToArray() {
-			position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
-			if positionErr != nil {
-				return rowsWritten, positionErr
-			}
-			valueErr := xlsx.SetCellValue("Sheet1", position, element)
-			if valueErr != nil {
-				stdErr.Printf("Could not set value for %s: %s", position, valueErr)
-			}
-			colIndex++
+	for _, dev := range results.Devices {
+		csvRows, csvRowsErr := dev.ToCSVRows()
+		if csvRowsErr != nil {
+			stdErr.Printf("Could not convert device to CSV rows: %s", csvRowsErr)
+			continue
 		}
-		rowsWritten++
+		for _, row := range csvRows {
+			colIndex = 1
+			rowIndex++
+			for _, element := range strings.Split(row, ",") {
+				element = strings.Trim(element, `"`)
+				position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
+				if positionErr != nil {
+					return rowsWritten, positionErr
+				}
+				valueErr := xlsx.SetCellValue("Sheet1", position, element)
+				if valueErr != nil {
+					stdErr.Printf("Could not set value for %s: %s", position, valueErr)
+				}
+				colIndex++
+			}
+			rowsWritten++
+		}
 	}
 
 	xlsx.SetSheetName("Sheet1", time.Now().Format(time.RFC3339))
