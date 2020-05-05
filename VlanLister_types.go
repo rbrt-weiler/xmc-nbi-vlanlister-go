@@ -81,8 +81,6 @@ type appConfig struct {
 	PrintVersion    bool
 }
 
-// Old data storage construct >>
-
 // Used for parsing the list of devices returned by XMC.
 type xmcDeviceList struct {
 	Data struct {
@@ -141,29 +139,6 @@ type xmcDeviceData struct {
 	} `json:"data"`
 }
 
-// Used to store the values for each row that is written to outfile
-type resultSet struct {
-	ID          int
-	BaseMac     string
-	IP          string
-	SysUpDown   string
-	SysName     string
-	SysLocation string
-	IfName      string
-	IfStatus    string
-	Untagged    []string
-	Tagged      []string
-}
-
-// Convert a single resultSet to an array
-func (rs *resultSet) ToArray() []string {
-	retVal := []string{strconv.Itoa(rs.ID), rs.BaseMac, rs.IP, rs.SysUpDown, rs.SysName, rs.SysLocation, rs.IfName, rs.IfStatus, strings.Join(rs.Untagged, ","), strings.Join(rs.Tagged, ",")}
-	return retVal
-}
-
-// << Old data storage construct
-// New data storage construct >>
-
 // Stores data related to the VLANs configured on a device.
 type deviceVlan struct {
 	Type      string `json:"type"`
@@ -213,6 +188,7 @@ type devicesWrapper struct {
    ##       ##    ##        ########    ##        #######  ##    ##  ######   ######
 */
 
+// Transforms a singleDevice struct into an array of strings representing CSV output.
 func (sd *singleDevice) ToCSVRows() ([]string, error) {
 	var result []string
 	var sysID string
@@ -243,6 +219,7 @@ func (sd *singleDevice) ToCSVRows() ([]string, error) {
 	return result, nil
 }
 
+// Transforms a devicesWrapper struct into a string representing CSV output.
 func (dw *devicesWrapper) ToCSV() (string, error) {
 	var result []string
 
@@ -261,6 +238,7 @@ func (dw *devicesWrapper) ToCSV() (string, error) {
 	return strings.Join(result, "\n"), nil
 }
 
+// Transforms a devicesWrapper struct into a string representing JSON output.
 func (dw *devicesWrapper) ToJSON() (string, error) {
 	json, jsonErr := json.MarshalIndent(dw, "", "    ")
 	if jsonErr != nil {
@@ -268,5 +246,3 @@ func (dw *devicesWrapper) ToJSON() (string, error) {
 	}
 	return string(json), nil
 }
-
-// << New data storage construct

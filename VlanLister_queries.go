@@ -164,71 +164,7 @@ func rediscoverDevices(client *xmcnbiclient.NBIClient, ipList []string) []string
 }
 
 // Fetches the detailed data for a single device from XMC
-func queryDevice(client *xmcnbiclient.NBIClient, deviceIP string) ([]resultSet, error) {
-	var deviceResult []resultSet
-
-	body, bodyErr := client.QueryAPI(fmt.Sprintf(gqlDeviceDataQuery, deviceIP, deviceIP))
-	if bodyErr != nil {
-		return deviceResult, fmt.Errorf("Could not query device %s: %s", deviceIP, bodyErr)
-	}
-	proactiveTokenRefresh(client)
-
-	jsonData := xmcDeviceData{}
-	jsonErr := json.Unmarshal(body, &jsonData)
-	if jsonErr != nil {
-		return deviceResult, fmt.Errorf("Could not decode JSON: %s", jsonErr)
-	}
-
-	device := jsonData.Data.Network.Device
-	vlans := jsonData.Data.Network.DeviceVlans
-	ports := jsonData.Data.Network.Device.EntityData.AllPorts
-
-	stdErr.Printf("Fetched data for %s: Got %d VLANs and %d ports.\n", device.IP, len(vlans), len(ports))
-
-	systemResult := resultSet{}
-	systemResult.ID = device.ID
-	systemResult.BaseMac = device.BaseMac
-	systemResult.IP = device.IP
-	systemResult.SysUpDown = "down"
-	if device.Up {
-		systemResult.SysUpDown = "up"
-	}
-	systemResult.SysName = device.SysName
-	systemResult.SysLocation = device.SysLocation
-	systemResult.IfName = "SYSTEM"
-	systemResult.IfStatus = "N/A"
-	for _, vlan := range vlans {
-		systemResult.Tagged = append(systemResult.Tagged, strconv.Itoa(vlan.Vid))
-	}
-	deviceResult = append(deviceResult, systemResult)
-
-	for _, port := range ports {
-		portResult := resultSet{}
-		portResult.ID = device.ID
-		portResult.BaseMac = device.BaseMac
-		portResult.IP = device.IP
-		portResult.SysUpDown = "down"
-		if device.Up {
-			portResult.SysUpDown = "up"
-		}
-		portResult.SysName = device.SysName
-		portResult.SysLocation = device.SysLocation
-		portResult.IfName = port.IfName
-		portResult.IfStatus = port.IfOperStatus
-		for _, vlan := range port.VlanList {
-			if strings.Contains(vlan, "Untagged") {
-				portResult.Untagged = append(portResult.Untagged, strings.Split(vlan, "[")[0])
-			} else if strings.Contains(vlan, "Tagged") {
-				portResult.Tagged = append(portResult.Tagged, strings.Split(vlan, "[")[0])
-			}
-		}
-		deviceResult = append(deviceResult, portResult)
-	}
-
-	return deviceResult, nil
-}
-
-func queryDeviceNew(client *xmcnbiclient.NBIClient, deviceIP string) (singleDevice, error) {
+func queryDevice(client *xmcnbiclient.NBIClient, deviceIP string) (singleDevice, error) {
 	var deviceResult singleDevice
 
 	deviceResult.QueriedAt = time.Now().Format(time.RFC3339)

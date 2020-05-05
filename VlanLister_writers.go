@@ -45,26 +45,8 @@ var (
 ##        #######  ##    ##  ######   ######
 */
 
-// Transforms an array of resultSets to CSV data
-func rsArrayToCSV(results []resultSet) (uint, string) {
-	var rowsWritten uint = 0
-	var rowData string
-	var csvData string = ""
-
-	for _, row := range results {
-		rowData = ""
-		for _, element := range row.ToArray() {
-			rowData = fmt.Sprintf("%s,\"%s\"", rowData, element)
-		}
-		csvData = fmt.Sprintf("%s%s\n", csvData, strings.TrimPrefix(rowData, ","))
-		rowsWritten++
-	}
-
-	return rowsWritten, csvData
-}
-
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
-func writeResults(filename string, results []resultSet, resultsNew devicesWrapper) (uint, error) {
+func writeResults(filename string, resultsNew devicesWrapper) (uint, error) {
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
@@ -140,6 +122,7 @@ func writeResultsCSV(filename string, results devicesWrapper) (uint, error) {
 	return rowsWritten, nil
 }
 
+// Writes the results to outfile in JSON format
 func writeResultsJSON(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
 

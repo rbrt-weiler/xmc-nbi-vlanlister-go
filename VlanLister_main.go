@@ -192,27 +192,20 @@ func main() {
 	}
 	sort.Strings(rediscoveredDevices)
 
-	queryResults := []resultSet{}
-	queryResultsNew := []singleDevice{}
+	queryResults := []singleDevice{}
 	for _, deviceIP := range rediscoveredDevices {
 		deviceResult, deviceErr := queryDevice(&xmcClient, deviceIP)
 		if deviceErr != nil {
 			stdErr.Println(deviceErr)
 			continue
 		}
-		queryResults = append(queryResults, deviceResult...)
-		deviceResultNew, deviceErrNew := queryDeviceNew(&xmcClient, deviceIP)
-		if deviceErrNew != nil {
-			stdErr.Println(deviceErrNew)
-			continue
-		}
-		queryResultsNew = append(queryResultsNew, deviceResultNew)
+		queryResults = append(queryResults, deviceResult)
 	}
 
 	var writeRows uint
 	var writeErr error
 	for _, outfile := range config.Outfile {
-		writeRows, writeErr = writeResults(outfile, queryResults, devicesWrapper{queryResultsNew})
+		writeRows, writeErr = writeResults(outfile, devicesWrapper{queryResults})
 		if writeErr != nil {
 			stdErr.Println(writeErr)
 		} else {
