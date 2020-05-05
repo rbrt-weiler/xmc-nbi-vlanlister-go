@@ -206,7 +206,7 @@ func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 		for _, row := range csvRows {
 			colIndex = 1
 			rowIndex++
-			for _, element := range strings.Split(row, ",") {
+			for _, element := range strings.Split(row, `","`) {
 				element = strings.Trim(element, `"`)
 				position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
 				if positionErr != nil {

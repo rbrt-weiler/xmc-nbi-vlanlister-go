@@ -207,10 +207,10 @@ func (sd *singleDevice) ToCSVRows() ([]string, error) {
 	for _, port := range sd.Ports {
 		var portUntaggedVlans []string
 		var portTaggedVlans []string
-		for untaggedID := range port.UntaggedVlans {
-			portTaggedVlans = append(portTaggedVlans, strconv.Itoa(untaggedID))
+		for _, untaggedID := range port.UntaggedVlans {
+			portUntaggedVlans = append(portUntaggedVlans, strconv.Itoa(untaggedID))
 		}
-		for taggedID := range port.TaggedVlans {
+		for _, taggedID := range port.TaggedVlans {
 			portTaggedVlans = append(portTaggedVlans, strconv.Itoa(taggedID))
 		}
 		result = append(result, fmt.Sprintf(csvFormatString, sysID, sd.BaseMAC, sd.IPAddress, sysUpDown, sd.SysName, sd.SysLocation, port.Name, port.OperStatus, strings.Join(portUntaggedVlans, ","), strings.Join(portTaggedVlans, ",")))
