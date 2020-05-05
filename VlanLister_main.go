@@ -201,6 +201,7 @@ func main() {
 		}
 		queryResults = append(queryResults, deviceResult)
 	}
+	sort.Slice(queryResults, func(i, j int) bool { return queryResults[i].ID < queryResults[j].ID })
 
 	var writeRows uint
 	var writeErr error

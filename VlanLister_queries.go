@@ -204,6 +204,7 @@ func queryDevice(client *xmcnbiclient.NBIClient, deviceIP string) (singleDevice,
 		vlanResult.Netmask = vlan.Netmask
 		deviceResult.Vlans = append(deviceResult.Vlans, vlanResult)
 	}
+	sort.Slice(deviceResult.Vlans, func(i, j int) bool { return deviceResult.Vlans[i].ID < deviceResult.Vlans[j].ID })
 
 	for _, port := range ports {
 		portResult := devicePort{}
@@ -224,8 +225,11 @@ func queryDevice(client *xmcnbiclient.NBIClient, deviceIP string) (singleDevice,
 				portResult.TaggedVlans = append(portResult.TaggedVlans, vid)
 			}
 		}
+		sort.Slice(portResult.UntaggedVlans, func(i, j int) bool { return portResult.UntaggedVlans[i] < portResult.UntaggedVlans[i] })
+		sort.Slice(portResult.TaggedVlans, func(i, j int) bool { return portResult.TaggedVlans[i] < portResult.TaggedVlans[i] })
 		deviceResult.Ports = append(deviceResult.Ports, portResult)
 	}
+	sort.Slice(deviceResult.Ports, func(i, j int) bool { return deviceResult.Ports[i].Index < deviceResult.Ports[j].Index })
 
 	return deviceResult, nil
 }
