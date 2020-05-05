@@ -68,9 +68,10 @@ Available options:
 It is required to provide at least one outfile. File types are determined
 by the prefix FILETYPE: or the suffix .FILETYPE. Prefixes take priority
 over suffixes. Valid FILETYPEs are:
-  csv     -->  writes data a CSV file
+  csv     -->  writes CSV data to the given file
+  json    -->  writes JSON data to the given file
   stdout  -->  prints CSV data to stdout
-  xlsx    -->  writes data a XLSX file
+  xlsx    -->  writes XLSX data to the given file
 When using stdout, you should remove all stderr output (2>/dev/null).
 
 Nearly all options that take a value can be set via environment variables:
