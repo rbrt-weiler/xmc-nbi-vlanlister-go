@@ -17,7 +17,7 @@ import (
 	"strings"
 	"time"
 
-	excelize "github.com/360EntSecGroup-Skylar/excelize"
+	excelize "github.com/360EntSecGroup-Skylar/excelize/v2"
 )
 
 /*

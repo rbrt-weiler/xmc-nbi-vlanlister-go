@@ -26,7 +26,7 @@ VlanLister uses the modules [excelize](https://github.com/360EntSecGroup-Skylar/
 
 Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary. Prebuilt binaries may be available as artifacts from the GitLab CI/CD [pipeline for tagged releases](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/pipelines?scope=tags).
 
-Tested with [go1.13](https://golang.org/doc/go1.13) against XMC 8.4.1.24.
+Tested with [go1.14](https://golang.org/doc/go1.14) against XMC 8.4.1.24.
 
 ## Usage
 
