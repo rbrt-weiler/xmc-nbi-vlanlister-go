@@ -18,21 +18,15 @@ after_script:
 # do not forget to set project variables
 include:
   - template: SAST.gitlab-ci.yml # GITLAB_FEATURES = "sast"
-  #- template: Code-Quality.gitlab-ci.yml # GITLAB_FEATURES = "code_quality"
-  #- template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
-  #- template: License-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "license_scanning"
+  - template: Code-Quality.gitlab-ci.yml # GITLAB_FEATURES = "code_quality"
+  - template: Dependency-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "dependency_scanning"
+  - template: License-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "license_scanning"
 
 variables:
   SAST_DISABLE_DIND: "true"
   SAST_GOSEC_LEVEL: 0
 
 
-
-.dependency_command: &dependency_command
-- go get github.com/360EntSecGroup-Skylar/excelize
-- go get github.com/joho/godotenv
-- go get gitlab.com/rbrt-weiler/go-module-envordef
-- go get gitlab.com/rbrt-weiler/go-module-xmcnbiclient
 
 .build_command: &build_command
 - go build -o binaries/VlanLister ./...
@@ -53,23 +47,24 @@ variables:
 
 build-master:
   stage: build
-  except:
-    - stable
-    - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: always
+      allow_failure: true
   cache:
     key: "dev-$CI_COMMIT_SHA"
     paths:
       - binaries
   script:
-    - *dependency_command
     - *build_command
   allow_failure: true
 
 test-master:
   stage: test
-  except:
-    - stable
-    - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "master"
+      when: on_success
+      allow_failure: true
   cache:
     key: "dev-$CI_COMMIT_SHA"
     paths:
@@ -82,24 +77,21 @@ test-master:
 
 build-stable:
   stage: build
-  only:
-    - stable
-  except:
-    - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "stable"
+      when: always
   cache:
     key: "staging-$CI_COMMIT_SHA"
     paths:
       - binaries
   script:
-    - *dependency_command
     - *build_command
 
 test-stable:
   stage: test
-  only:
-    - stable
-  except:
-    - tags
+  rules:
+    - if: $CI_COMMIT_BRANCH == "stable"
+      when: on_success
   cache:
     key: "staging-$CI_COMMIT_SHA"
     paths:
@@ -117,21 +109,22 @@ test-stable:
 
 build-tagged:
   stage: build
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: always
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
       - binaries
   script:
-    - *dependency_command
     - *build_command
     - *build_command_release
 
 test-tagged:
   stage: test
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: on_success
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
@@ -141,8 +134,9 @@ test-tagged:
 
 deploy-tagged:
   stage: deploy
-  only:
-    - tags
+  rules:
+    - if: $CI_COMMIT_TAG
+      when: on_success
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
