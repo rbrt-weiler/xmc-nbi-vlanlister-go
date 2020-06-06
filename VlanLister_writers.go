@@ -181,8 +181,55 @@ func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 	var rowsWritten uint = 0
 	var colIndex int = 1
 	var rowIndex int = 1
+	var colors map[int]map[int]string
+	var cellStyles map[int]map[int]int
+	var devCount int = 0
+	var rowCount int = 0
+
+	colors = make(map[int]map[int]string)
+	// Grey
+	colors[0] = make(map[int]string)
+	colors[0][0] = "#F2F2F2"
+	colors[0][1] = "#E6E6E6"
+	// Yellow
+	colors[1] = make(map[int]string)
+	colors[1][0] = "#FFFFE6"
+	colors[1][1] = "#FFFFCC"
+	// Green
+	colors[2] = make(map[int]string)
+	colors[2][0] = "#E6FFE6"
+	colors[2][1] = "#CCFFCC"
+	// Turqoise
+	colors[3] = make(map[int]string)
+	colors[3][0] = "#E6FFFF"
+	colors[3][1] = "#CCFFFF"
+	// Blue
+	colors[4] = make(map[int]string)
+	colors[4][0] = "#E6E6FF"
+	colors[4][1] = "#CCCCFF"
+	// Purple
+	colors[5] = make(map[int]string)
+	colors[5][0] = "#FFE6FF"
+	colors[5][1] = "#FFCCFF"
+	// Red
+	colors[6] = make(map[int]string)
+	colors[6][0] = "#FFE6E6"
+	colors[6][1] = "#FFCCCC"
 
 	xlsx := excelize.NewFile()
+
+	cellStyles = make(map[int]map[int]int)
+	for baseColor := range colors {
+		cellStyles[baseColor] = make(map[int]int)
+		for rowColor := range colors[baseColor] {
+			styleString := fmt.Sprintf(`{"fill":{"type":"pattern","color":["%s"],"pattern":1}}`, colors[baseColor][rowColor])
+			styleFormat, styleFormatErr := xlsx.NewStyle(styleString)
+			if styleFormatErr != nil {
+				return rowsWritten, styleFormatErr
+			}
+			cellStyles[baseColor][rowColor] = styleFormat
+		}
+	}
 
 	for _, columnName := range csvColumns {
 		position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
@@ -206,6 +253,8 @@ func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 		for _, row := range csvRows {
 			colIndex = 1
 			rowIndex++
+			devStyleID := devCount % len(cellStyles)
+			rowStyleID := rowCount % len(cellStyles[devStyleID])
 			for _, element := range strings.Split(row, `","`) {
 				element = strings.Trim(element, `"`)
 				position, positionErr := excelize.CoordinatesToCellName(colIndex, rowIndex)
@@ -216,10 +265,17 @@ func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 				if valueErr != nil {
 					stdErr.Printf("Could not set value for %s: %s", position, valueErr)
 				}
+				styleErr := xlsx.SetCellStyle("Sheet1", position, position, cellStyles[devStyleID][rowStyleID])
+				if styleErr != nil {
+					stdErr.Printf("Could not set style for cell %s: %s", position, styleErr)
+				}
 				colIndex++
 			}
 			rowsWritten++
+			rowCount++
 		}
+		devCount++
+		rowCount = 0
 	}
 
 	xlsx.SetSheetName("Sheet1", time.Now().Format(time.RFC3339))
