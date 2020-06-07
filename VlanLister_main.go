@@ -85,6 +85,7 @@ func parseCLIOptions() {
 	flag.UintVar(&config.RefreshInterval, "refreshinterval", envordef.UintVal("XMCREFRESHINTERVAL", 5), "Seconds to wait between triggering each refresh")
 	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 15), "Minutes to wait after refreshing devices")
 	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
+	flag.BoolVar(&config.NoColor, "nocolor", envordef.BoolVal("XMCNOCOLOR", false), "Do not colorize output (Excel)")
 	flag.Var(&config.Outfile, "outfile", "File to write data to")
 	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
 	flag.Usage = func() {
@@ -125,6 +126,7 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "  XMCREFRESHINTERVAL  -->  -refreshinterval\n")
 		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT      -->  -refreshwait\n")
 		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN      -->  -includedown\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOCOLOR          -->  -nocolor\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Environment variables can also be configured via a file called %s,\n", envFileName)
 		fmt.Fprintf(os.Stderr, "located in the current directory or in the home directory of the current\n")

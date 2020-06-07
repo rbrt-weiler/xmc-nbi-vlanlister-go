@@ -42,6 +42,8 @@ Available options:
     	Include inactive devices in result
   -insecurehttps
     	Do not validate HTTPS certificates
+  -nocolor
+        Do not colorize output (Excel)
   -nohttps
     	Use HTTP instead of HTTPS
   -norefresh
@@ -88,6 +90,7 @@ Nearly all options that take a value can be set via environment variables:
   XMCREFRESHINTERVAL  -->  -refreshinterval
   XMCREFRESHWAIT      -->  -refreshwait
   XMCINCLUDEDOWN      -->  -includedown
+  XMCNOCOLOR          -->  -nocolor
 
 Environment variables can also be configured via a file called .xmcenv,
 located in the current directory or in the home directory of the current

@@ -78,6 +78,7 @@ type appConfig struct {
 	RefreshWait     uint
 	IncludeDown     bool
 	Outfile         stringArray
+	NoColor         bool
 	PrintVersion    bool
 }
 
