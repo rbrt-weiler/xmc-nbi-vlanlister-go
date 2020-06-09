@@ -2,11 +2,13 @@
     "name": "Golang VS Code Remote Container",
     "dockerFile": "Dockerfile",
     "extensions": [
+        "aaron-bond.better-comments",
         "davidanson.vscode-markdownlint",
+        "golang.go",
         "helixquar.asciidecorator",
         "ms-vscode.go",
         "vscode-icons-team.vscode-icons",
-        "wayou.vscode-todo-highlight"
+        "yzhang.markdown-all-in-one"
     ],
     "settings": {
         "asciidecorator.defaultFont": "Banner3",
