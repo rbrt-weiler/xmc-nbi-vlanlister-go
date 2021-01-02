@@ -13,20 +13,13 @@ Other branches, for example for developing specific features, may be created and
 
 ## Dependencies
 
-VlanLister uses the modules [excelize](https://github.com/360EntSecGroup-Skylar/excelize), [godotenv](https://github.com/joho/godotenv), [envordef](https://gitlab.com/rbrt-weiler/go-module-envordef) and [xmcnbiclient](https://gitlab.com/rbrt-weiler/go-module-xmcnbiclient). Execute...
-
-1. `go get -u github.com/360EntSecGroup-Skylar/excelize`
-1. `go get -u github.com/joho/godotenv`
-1. `go get -u gitlab.com/rbrt-weiler/go-module-envordef`
-1. `go get -u gitlab.com/rbrt-weiler/go-module-xmcnbiclient`
-
-...before running or compiling VlanLister. All other dependencies are included in a standard Go installation.
+This tool uses Go modules to handle dependencies.
 
 ## Running / Compiling
 
 Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary. Prebuilt binaries may be available as artifacts from the GitLab CI/CD [pipeline for tagged releases](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/pipelines?scope=tags).
 
-Tested with [go1.14](https://golang.org/doc/go1.14) against XMC 8.4.1.24.
+Tested with [go1.15](https://golang.org/doc/go1.15) against XMC 8.4.1.24.
 
 ## Usage
 
