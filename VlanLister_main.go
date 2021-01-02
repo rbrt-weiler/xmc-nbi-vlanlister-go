@@ -11,7 +11,6 @@ package main
 */
 
 import (
-	"flag"
 	"fmt"
 	"log"
 	"os"
@@ -19,6 +18,7 @@ import (
 	"sort"
 
 	godotenv "github.com/joho/godotenv"
+	pflag "github.com/spf13/pflag"
 	envordef "gitlab.com/rbrt-weiler/go-module-envordef"
 	xmcnbiclient "gitlab.com/rbrt-weiler/go-module-xmcnbiclient"
 )
@@ -35,7 +35,7 @@ import (
 
 const (
 	toolName    string = "VlanLister.go"
-	toolVersion string = "2.2.0"
+	toolVersion string = "2.2.0-pflag"
 	toolID      string = toolName + "/" + toolVersion
 	toolURL     string = "https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go"
 	envFileName string = ".xmcenv"
@@ -72,23 +72,23 @@ var (
 
 // Parses the CLI options and arguments into app config
 func parseCLIOptions() {
-	flag.StringVar(&config.XMCHost, "host", envordef.StringVal("XMCHOST", ""), "XMC Hostname / IP")
-	flag.UintVar(&config.XMCPort, "port", envordef.UintVal("XMCPORT", 8443), "HTTP port where XMC is listening")
-	flag.StringVar(&config.XMCPath, "path", envordef.StringVal("XMCPATH", ""), "Path where XMC is reachable")
-	flag.UintVar(&config.HTTPTimeout, "timeout", envordef.UintVal("XMCTIMEOUT", 5), "Timeout for HTTP(S) connections")
-	flag.BoolVar(&config.NoHTTPS, "nohttps", envordef.BoolVal("XMCNOHTTPS", false), "Use HTTP instead of HTTPS")
-	flag.BoolVar(&config.InsecureHTTPS, "insecurehttps", envordef.BoolVal("XMCINSECUREHTTPS", false), "Do not validate HTTPS certificates")
-	flag.StringVar(&config.XMCUserID, "userid", envordef.StringVal("XMCUSERID", ""), "Client ID (OAuth) or username (Basic Auth) for authentication")
-	flag.StringVar(&config.XMCSecret, "secret", envordef.StringVal("XMCSECRET", ""), "Client Secret (OAuth) or password (Basic Auth) for authentication")
-	flag.BoolVar(&config.BasicAuth, "basicauth", envordef.BoolVal("XMCBASICAUTH", false), "Use HTTP Basic Auth instead of OAuth")
-	flag.BoolVar(&config.NoRefresh, "norefresh", envordef.BoolVal("XMCNOREFRESH", false), "Do not refresh (rediscover) devices")
-	flag.UintVar(&config.RefreshInterval, "refreshinterval", envordef.UintVal("XMCREFRESHINTERVAL", 5), "Seconds to wait between triggering each refresh")
-	flag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 15), "Minutes to wait after refreshing devices")
-	flag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
-	flag.BoolVar(&config.NoColor, "nocolor", envordef.BoolVal("XMCNOCOLOR", false), "Do not colorize output (Excel)")
-	flag.Var(&config.Outfile, "outfile", "File to write data to")
-	flag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
-	flag.Usage = func() {
+	pflag.StringVar(&config.XMCHost, "host", envordef.StringVal("XMCHOST", ""), "XMC Hostname / IP")
+	pflag.UintVar(&config.XMCPort, "port", envordef.UintVal("XMCPORT", 8443), "HTTP port where XMC is listening")
+	pflag.StringVar(&config.XMCPath, "path", envordef.StringVal("XMCPATH", ""), "Path where XMC is reachable")
+	pflag.UintVar(&config.HTTPTimeout, "timeout", envordef.UintVal("XMCTIMEOUT", 5), "Timeout for HTTP(S) connections")
+	pflag.BoolVar(&config.NoHTTPS, "nohttps", envordef.BoolVal("XMCNOHTTPS", false), "Use HTTP instead of HTTPS")
+	pflag.BoolVar(&config.InsecureHTTPS, "insecurehttps", envordef.BoolVal("XMCINSECUREHTTPS", false), "Do not validate HTTPS certificates")
+	pflag.StringVar(&config.XMCUserID, "userid", envordef.StringVal("XMCUSERID", ""), "Client ID (OAuth) or username (Basic Auth) for authentication")
+	pflag.StringVar(&config.XMCSecret, "secret", envordef.StringVal("XMCSECRET", ""), "Client Secret (OAuth) or password (Basic Auth) for authentication")
+	pflag.BoolVar(&config.BasicAuth, "basicauth", envordef.BoolVal("XMCBASICAUTH", false), "Use HTTP Basic Auth instead of OAuth")
+	pflag.BoolVar(&config.NoRefresh, "norefresh", envordef.BoolVal("XMCNOREFRESH", false), "Do not refresh (rediscover) devices")
+	pflag.UintVar(&config.RefreshInterval, "refreshinterval", envordef.UintVal("XMCREFRESHINTERVAL", 5), "Seconds to wait between triggering each refresh")
+	pflag.UintVar(&config.RefreshWait, "refreshwait", envordef.UintVal("XMCREFRESHWAIT", 15), "Minutes to wait after refreshing devices")
+	pflag.BoolVar(&config.IncludeDown, "includedown", envordef.BoolVal("XMCINCLUDEDOWN", false), "Include inactive devices in result")
+	pflag.BoolVar(&config.NoColor, "nocolor", envordef.BoolVal("XMCNOCOLOR", false), "Do not colorize output (Excel)")
+	pflag.Var(&config.Outfile, "outfile", "File to write data to")
+	pflag.BoolVar(&config.PrintVersion, "version", false, "Print version information and exit")
+	pflag.Usage = func() {
 		fmt.Fprintf(os.Stderr, "%s\n", toolID)
 		fmt.Fprintf(os.Stderr, "%s\n", toolURL)
 		fmt.Fprintf(os.Stderr, "\n")
@@ -101,7 +101,7 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "Usage: %s [options]\n", path.Base(os.Args[0]))
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Available options:\n")
-		flag.PrintDefaults()
+		pflag.PrintDefaults()
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "It is required to provide at least one outfile. File types are determined\n")
 		fmt.Fprintf(os.Stderr, "by the prefix FILETYPE: or the suffix .FILETYPE. Prefixes take priority\n")
@@ -113,26 +113,26 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "When using stdout, you should remove all stderr output (2>/dev/null).\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
-		fmt.Fprintf(os.Stderr, "  XMCHOST             -->  -host\n")
-		fmt.Fprintf(os.Stderr, "  XMCPORT             -->  -port\n")
-		fmt.Fprintf(os.Stderr, "  XMCPATH             -->  -path\n")
-		fmt.Fprintf(os.Stderr, "  XMCTIMEOUT          -->  -timeout\n")
-		fmt.Fprintf(os.Stderr, "  XMCNOHTTPS          -->  -nohttps\n")
-		fmt.Fprintf(os.Stderr, "  XMCINSECUREHTTPS    -->  -insecurehttps\n")
-		fmt.Fprintf(os.Stderr, "  XMCUSERID           -->  -userid\n")
-		fmt.Fprintf(os.Stderr, "  XMCSECRET           -->  -secret\n")
-		fmt.Fprintf(os.Stderr, "  XMCBASICAUTH        -->  -basicauth\n")
-		fmt.Fprintf(os.Stderr, "  XMCNOREFRESH        -->  -norefresh\n")
-		fmt.Fprintf(os.Stderr, "  XMCREFRESHINTERVAL  -->  -refreshinterval\n")
-		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT      -->  -refreshwait\n")
-		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN      -->  -includedown\n")
-		fmt.Fprintf(os.Stderr, "  XMCNOCOLOR          -->  -nocolor\n")
+		fmt.Fprintf(os.Stderr, "  XMCHOST             -->  --host\n")
+		fmt.Fprintf(os.Stderr, "  XMCPORT             -->  --port\n")
+		fmt.Fprintf(os.Stderr, "  XMCPATH             -->  --path\n")
+		fmt.Fprintf(os.Stderr, "  XMCTIMEOUT          -->  --timeout\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOHTTPS          -->  --nohttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCINSECUREHTTPS    -->  --insecurehttps\n")
+		fmt.Fprintf(os.Stderr, "  XMCUSERID           -->  --userid\n")
+		fmt.Fprintf(os.Stderr, "  XMCSECRET           -->  --secret\n")
+		fmt.Fprintf(os.Stderr, "  XMCBASICAUTH        -->  --basicauth\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOREFRESH        -->  --norefresh\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHINTERVAL  -->  --refreshinterval\n")
+		fmt.Fprintf(os.Stderr, "  XMCREFRESHWAIT      -->  --refreshwait\n")
+		fmt.Fprintf(os.Stderr, "  XMCINCLUDEDOWN      -->  --includedown\n")
+		fmt.Fprintf(os.Stderr, "  XMCNOCOLOR          -->  --nocolor\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Environment variables can also be configured via a file called %s,\n", envFileName)
 		fmt.Fprintf(os.Stderr, "located in the current directory or in the home directory of the current\n")
 		fmt.Fprintf(os.Stderr, "user.\n")
 	}
-	flag.Parse()
+	pflag.Parse()
 }
 
 /*

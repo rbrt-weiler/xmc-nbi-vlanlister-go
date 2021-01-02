@@ -61,6 +61,11 @@ func (oa *stringArray) Set(value string) error {
 	return nil
 }
 
+// Returns type information.
+func (oa *stringArray) Type() string {
+	return "[]string"
+}
+
 // Stores configuration data used throughout the app.
 type appConfig struct {
 	XMCHost         string

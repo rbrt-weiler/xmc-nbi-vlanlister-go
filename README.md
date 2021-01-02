@@ -34,38 +34,22 @@ Tested with [go1.14](https://golang.org/doc/go1.14) against XMC 8.4.1.24.
 
 ```text
 Available options:
-  -basicauth
-    	Use HTTP Basic Auth instead of OAuth
-  -host string
-    	XMC Hostname / IP
-  -includedown
-    	Include inactive devices in result
-  -insecurehttps
-    	Do not validate HTTPS certificates
-  -nocolor
-        Do not colorize output (Excel)
-  -nohttps
-    	Use HTTP instead of HTTPS
-  -norefresh
-    	Do not refresh (rediscover) devices
-  -outfile value
-    	File to write data to
-  -path string
-    	Path where XMC is reachable
-  -port uint
-    	HTTP port where XMC is listening (default 8443)
-  -refreshinterval uint
-    	Seconds to wait between triggering each refresh (default 5)
-  -refreshwait uint
-    	Minutes to wait after refreshing devices (default 15)
-  -secret string
-    	Client Secret (OAuth) or password (Basic Auth) for authentication
-  -timeout uint
-    	Timeout for HTTP(S) connections (default 5)
-  -userid string
-    	Client ID (OAuth) or username (Basic Auth) for authentication
-  -version
-    	Print version information and exit
+      --basicauth              Use HTTP Basic Auth instead of OAuth
+      --host string            XMC Hostname / IP
+      --includedown            Include inactive devices in result
+      --insecurehttps          Do not validate HTTPS certificates
+      --nocolor                Do not colorize output (Excel)
+      --nohttps                Use HTTP instead of HTTPS
+      --norefresh              Do not refresh (rediscover) devices
+      --outfile []string       File to write data to
+      --path string            Path where XMC is reachable
+      --port uint              HTTP port where XMC is listening (default 8443)
+      --refreshinterval uint   Seconds to wait between triggering each refresh (default 5)
+      --refreshwait uint       Minutes to wait after refreshing devices (default 15)
+      --secret string          Client Secret (OAuth) or password (Basic Auth) for authentication
+      --timeout uint           Timeout for HTTP(S) connections (default 5)
+      --userid string          Client ID (OAuth) or username (Basic Auth) for authentication
+      --version                Print version information and exit
 
 It is required to provide at least one outfile. File types are determined
 by the prefix FILETYPE: or the suffix .FILETYPE. Prefixes take priority
@@ -77,20 +61,20 @@ over suffixes. Valid FILETYPEs are:
 When using stdout, you should remove all stderr output (2>/dev/null).
 
 Nearly all options that take a value can be set via environment variables:
-  XMCHOST             -->  -host
-  XMCPORT             -->  -port
-  XMCPATH             -->  -path
-  XMCTIMEOUT          -->  -timeout
-  XMCNOHTTPS          -->  -nohttps
-  XMCINSECUREHTTPS    -->  -insecurehttps
-  XMCUSERID           -->  -userid
-  XMCSECRET           -->  -secret
-  XMCBASICAUTH        -->  -basicauth
-  XMCNOREFRESH        -->  -norefresh
-  XMCREFRESHINTERVAL  -->  -refreshinterval
-  XMCREFRESHWAIT      -->  -refreshwait
-  XMCINCLUDEDOWN      -->  -includedown
-  XMCNOCOLOR          -->  -nocolor
+  XMCHOST             -->  --host
+  XMCPORT             -->  --port
+  XMCPATH             -->  --path
+  XMCTIMEOUT          -->  --timeout
+  XMCNOHTTPS          -->  --nohttps
+  XMCINSECUREHTTPS    -->  --insecurehttps
+  XMCUSERID           -->  --userid
+  XMCSECRET           -->  --secret
+  XMCBASICAUTH        -->  --basicauth
+  XMCNOREFRESH        -->  --norefresh
+  XMCREFRESHINTERVAL  -->  --refreshinterval
+  XMCREFRESHWAIT      -->  --refreshwait
+  XMCINCLUDEDOWN      -->  --includedown
+  XMCNOCOLOR          -->  --nocolor
 
 Environment variables can also be configured via a file called .xmcenv,
 located in the current directory or in the home directory of the current
