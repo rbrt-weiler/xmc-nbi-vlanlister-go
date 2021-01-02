@@ -63,7 +63,7 @@ func (oa *stringArray) Set(value string) error {
 
 // Returns type information.
 func (oa *stringArray) Type() string {
-	return "[]string"
+	return "string"
 }
 
 // Stores configuration data used throughout the app.

@@ -30,12 +30,12 @@ Tested with [go1.14](https://golang.org/doc/go1.14) against XMC 8.4.1.24.
 
 ## Usage
 
-`VlanLister -h`:
+`VlanLister --help`:
 
 ```text
 Available options:
       --basicauth              Use HTTP Basic Auth instead of OAuth
-      --host string            XMC Hostname / IP
+  -h, --host string            XMC Hostname / IP
       --includedown            Include inactive devices in result
       --insecurehttps          Do not validate HTTPS certificates
       --nocolor                Do not colorize output (Excel)
@@ -46,9 +46,9 @@ Available options:
       --port uint              HTTP port where XMC is listening (default 8443)
       --refreshinterval uint   Seconds to wait between triggering each refresh (default 5)
       --refreshwait uint       Minutes to wait after refreshing devices (default 15)
-      --secret string          Client Secret (OAuth) or password (Basic Auth) for authentication
+  -s, --secret string          Client Secret (OAuth) or password (Basic Auth) for authentication
       --timeout uint           Timeout for HTTP(S) connections (default 5)
-      --userid string          Client ID (OAuth) or username (Basic Auth) for authentication
+  -u, --userid string          Client ID (OAuth) or username (Basic Auth) for authentication
       --version                Print version information and exit
 
 It is required to provide at least one outfile. File types are determined
@@ -83,15 +83,15 @@ user.
 
 ### Examples
 
-1. `VlanLister -host xmc.example.com -insecurehttps -basicauth -userid root -secret abc123 -includedown -outfile xmc-vlans.csv`  
+1. `VlanLister -h xmc.example.com --insecurehttps --basicauth -u root -s abc123 --includedown --outfile xmc-vlans.csv`  
    Connect to xmc.example.com as root using HTTP Basic Auth. Skip HTTPS certificate checking and include devices that are down. Write results to xmc-vlans.csv.
-1. `VlanLister -host xmc.example.com -basicauth -userid root -secret abc123 -outfile xmc-vlans.csv`  
+2. `VlanLister -h xmc.example.com --basicauth -u root -s abc123 --outfile xmc-vlans.csv`  
    Same as above, but with HTTPS certificate checking and without including down devices in the outfile.
-1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xmc-vlans.csv -outfile xmc-vlans.xlsx`  
+3. `VlanLister -h xmc.example.com -u XMCOAuthID -s 01234567-89ab-cdef-0123-456789abcdef --outfile xmc-vlans.csv --outfile xmc-vlans.xlsx`  
    Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to both xmc-vlans.csv (in CSV format) and xmc-vlans.xlsx (in Excel format). File type is determined by suffix in this case.
-1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile xlsx:xmc-vlans.archive`  
+4. `VlanLister -h xmc.example.com -u XMCOAuthID -s 01234567-89ab-cdef-0123-456789abcdef --outfile xlsx:xmc-vlans.archive`  
    Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Write the results to xmc-vlans.archive in Excel format. File type is defined by prefix in this case.
-1. `VlanLister -host xmc.example.com -userid XMCOAuthID -secret 01234567-89ab-cdef-0123-456789abcdef -outfile stdout: 2>/dev/null`  
+5. `VlanLister -h xmc.example.com -u XMCOAuthID -s 01234567-89ab-cdef-0123-456789abcdef --outfile stdout: 2>/dev/null`  
    Connect to xmc.example.com using OAuth authentication and HTTPS certificate checking. Print the result to stdout in CSV format while surpressing all output to stderr.
 
 ## Authentication
