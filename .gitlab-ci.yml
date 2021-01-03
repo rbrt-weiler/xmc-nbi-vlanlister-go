@@ -37,7 +37,7 @@ variables:
 - GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_darwin-amd64 ./...
 
 .test_command: &test_command
-- ./binaries/VlanLister -version
+- ./binaries/VlanLister --version
 
 .release_command: &release_command
 - rm binaries/VlanLister
