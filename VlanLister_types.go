@@ -82,8 +82,9 @@ type appConfig struct {
 	RefreshInterval uint
 	RefreshWait     uint
 	IncludeDown     bool
-	Outfile         stringArray
 	NoColor         bool
+	Outfile         stringArray
+	CompressOutput  bool
 	PrintVersion    bool
 }
 

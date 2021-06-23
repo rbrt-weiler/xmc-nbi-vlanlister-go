@@ -12,6 +12,7 @@ package main
 
 import (
 	"bufio"
+	"compress/gzip"
 	"fmt"
 	"os"
 	"strings"
@@ -46,7 +47,17 @@ var (
 */
 
 // Decides which actual writeResults* function shall be used based on filename pre- or suffix
-func writeResults(filename string, resultsNew devicesWrapper) (uint, error) {
+func writeResults(filename string, resultsNew devicesWrapper) (errCode uint, err error) {
+	var compress bool
+	var writer func(string, devicesWrapper) (uint, error)
+
+	// Determine whether output should be compressed
+	compress = config.CompressOutput
+	if strings.HasSuffix(filename, ".gz") {
+		compress = true
+		filename = strings.TrimSuffix(filename, ".gz")
+	}
+
 	// Prefix checking
 	for _, filetype := range validFiletypes {
 		prefix := fmt.Sprintf("%s:", filetype)
@@ -54,35 +65,51 @@ func writeResults(filename string, resultsNew devicesWrapper) (uint, error) {
 			filename = strings.TrimPrefix(filename, prefix)
 			switch filetype {
 			case "csv":
-				return writeResultsCSV(filename, resultsNew)
+				writer = writeResultsCSV
 			case "json":
-				return writeResultsJSON(filename, resultsNew)
+				writer = writeResultsJSON
 			case "stdout":
-				return writeResultsStdout(filename, resultsNew)
+				writer = writeResultsStdout
 			case "xlsx":
-				return writeResultsXLSX(filename, resultsNew)
+				writer = writeResultsXLSX
 			}
 		}
 	}
-
 	// Suffix checking
-	for _, filetype := range validFiletypes {
-		suffix := fmt.Sprintf(".%s", filetype)
-		if strings.HasSuffix(filename, suffix) {
-			switch filetype {
-			case "csv":
-				return writeResultsCSV(filename, resultsNew)
-			case "json":
-				return writeResultsJSON(filename, resultsNew)
-			case "stdout":
-				return writeResultsStdout(filename, resultsNew)
-			case "xlsx":
-				return writeResultsXLSX(filename, resultsNew)
+	if writer == nil {
+		for _, filetype := range validFiletypes {
+			suffix := fmt.Sprintf(".%s", filetype)
+			if strings.HasSuffix(filename, suffix) {
+				switch filetype {
+				case "csv":
+					writer = writeResultsCSV
+				case "json":
+					writer = writeResultsJSON
+				case "stdout":
+					writer = writeResultsStdout
+				case "xlsx":
+					writer = writeResultsXLSX
+				}
+			}
+		}
+	}
+	// Quit if unsupported file type was provided
+	if writer == nil {
+		return 0, fmt.Errorf("Could not determine file type for <%s>", filename)
+	}
+
+	// Actually write the file
+	errCode, err = writer(filename, resultsNew)
+	if compress {
+		if err == nil {
+			err = compressFile(filename)
+			if err == nil {
+				err = os.Remove(filename)
 			}
 		}
 	}
 
-	return 0, fmt.Errorf("Could not determine file type for <%s>", filename)
+	return
 }
 
 // Writes the results to outfile in CSV format
@@ -293,4 +320,38 @@ func writeResultsXLSX(filename string, results devicesWrapper) (uint, error) {
 	}
 
 	return rowsWritten, nil
+}
+
+// Compresses an file using gzip
+func compressFile(filename string) (err error) {
+	var data []byte
+	var gzFile *os.File
+	var gzWriter *gzip.Writer
+
+	data, err = os.ReadFile(filename)
+	if err != nil {
+		return fmt.Errorf("could not read file: %s", err)
+	}
+	gzFile, err = os.Create(fmt.Sprintf("%s.gz", filename))
+	if err != nil {
+		return fmt.Errorf("could not create file: %s", err)
+	}
+	gzWriter, err = gzip.NewWriterLevel(gzFile, gzip.BestCompression)
+	if err != nil {
+		return fmt.Errorf("could create initialize compression: %s", err)
+	}
+	_, err = gzWriter.Write(data)
+	if err != nil {
+		return fmt.Errorf("could not write compressed data: %s", err)
+	}
+	err = gzWriter.Close()
+	if err != nil {
+		return fmt.Errorf("could not write compressed data: %s", err)
+	}
+	err = gzFile.Close()
+	if err != nil {
+		return fmt.Errorf("could not close file: %s", err)
+	}
+
+	return
 }
