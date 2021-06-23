@@ -35,7 +35,7 @@ import (
 
 const (
 	toolName    string = "VlanLister.go"
-	toolVersion string = "2.2.0-pflag"
+	toolVersion string = "2.2.0-dev"
 	toolID      string = toolName + "/" + toolVersion
 	toolURL     string = "https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go"
 	envFileName string = ".xmcenv"
