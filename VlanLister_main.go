@@ -112,6 +112,7 @@ func parseCLIOptions() {
 		fmt.Fprintf(os.Stderr, "  stdout  -->  prints CSV data to stdout\n")
 		fmt.Fprintf(os.Stderr, "  xlsx    -->  writes XLSX data to the given file\n")
 		fmt.Fprintf(os.Stderr, "When using stdout, you should remove all stderr output (2>/dev/null).\n")
+		fmt.Fprintf(os.Stderr, "The additional suffix .gz can be used to trigger compression.\n")
 		fmt.Fprintf(os.Stderr, "\n")
 		fmt.Fprintf(os.Stderr, "Nearly all options that take a value can be set via environment variables:\n")
 		fmt.Fprintf(os.Stderr, "  XMCHOST             -->  --host\n")
