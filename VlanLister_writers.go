@@ -70,6 +70,7 @@ func writeResults(filename string, resultsNew devicesWrapper) (errCode uint, err
 				writer = writeResultsJSON
 			case "stdout":
 				writer = writeResultsStdout
+				compress = false
 			case "xlsx":
 				writer = writeResultsXLSX
 			}
@@ -87,6 +88,7 @@ func writeResults(filename string, resultsNew devicesWrapper) (errCode uint, err
 					writer = writeResultsJSON
 				case "stdout":
 					writer = writeResultsStdout
+					compress = false
 				case "xlsx":
 					writer = writeResultsXLSX
 				}
