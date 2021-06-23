@@ -1,4 +1,4 @@
-image: golang:1.15
+image: golang:1.16
 
 
 
@@ -9,11 +9,8 @@ stages:
 
 
 
-before_script:
-  - mkdir -p binaries
-
 after_script:
-  - ls -l binaries
+  - ls -lR .
 
 # do not forget to set project variables
 include:
@@ -23,38 +20,37 @@ include:
   - template: License-Scanning.gitlab-ci.yml # GITLAB_FEATURES = "license_scanning"
 
 variables:
+  TOOL_NAME: "VlanLister"
   SAST_DISABLE_DIND: "true"
   SAST_GOSEC_LEVEL: 0
 
 
 
 .build_command: &build_command
-- go build -o binaries/VlanLister ./...
+- CGO=0 make build
 
 .build_command_release: &build_command_release
-- GOOS=linux GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_linux-amd64 ./...
-- GOOS=windows GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_win-amd64.exe ./...
-- GOOS=darwin GOARCH=amd64 go build -o binaries/VlanLister_${CI_COMMIT_TAG}_${CI_COMMIT_SHORT_SHA}_darwin-amd64 ./...
+- CGO=0 VERSION="${CI_COMMIT_TAG}" make -j8 release
 
 .test_command: &test_command
-- ./binaries/VlanLister --version
+- CGO=0 make test
 
 .release_command: &release_command
-- rm binaries/VlanLister
-- ln -s binaries VlanLister_${CI_COMMIT_TAG}
+- ln -s out/${TOOL_NAME}_${CI_COMMIT_TAG} ${TOOL_NAME}_${CI_COMMIT_TAG}
 
 
 
 build-master:
   stage: build
   rules:
-    - if: $CI_COMMIT_BRANCH == "master"
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
       when: always
-      allow_failure: true
   cache:
-    key: "dev-$CI_COMMIT_SHA"
+    key: "master-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
     - *build_command
   allow_failure: true
@@ -62,89 +58,144 @@ build-master:
 test-master:
   stage: test
   rules:
-    - if: $CI_COMMIT_BRANCH == "master"
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "master"'
       when: on_success
-      allow_failure: true
   cache:
-    key: "dev-$CI_COMMIT_SHA"
+    key: "master-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
     - *test_command
   allow_failure: true
+  artifacts:
+    when: on_success
+    expire_in: 30 minutes
+    name: "${TOOL_NAME}_${CI_COMMIT_SHORT_SHA}_master"
+    paths:
+      - out/*
 
 
 
 build-stable:
   stage: build
   rules:
-    - if: $CI_COMMIT_BRANCH == "stable"
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "stable"'
       when: always
   cache:
-    key: "staging-$CI_COMMIT_SHA"
+    key: "stable-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
-    - *build_command
+    - *build_command_release
 
 test-stable:
   stage: test
   rules:
-    - if: $CI_COMMIT_BRANCH == "stable"
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "stable"'
       when: on_success
   cache:
-    key: "staging-$CI_COMMIT_SHA"
+    key: "stable-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
     - *test_command
   artifacts:
     when: on_success
-    expire_in: 30 minutes
-    name: "VlanLister_${CI_COMMIT_SHORT_SHA}"
+    expire_in: 60 minutes
+    name: "${TOOL_NAME}_${CI_COMMIT_SHORT_SHA}_stable"
     paths:
-      - binaries/*
+      - out/*
 
 
 
 build-tagged:
   stage: build
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: '$CI_COMMIT_TAG'
       when: always
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
-    - *build_command
     - *build_command_release
 
 test-tagged:
   stage: test
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: '$CI_COMMIT_TAG'
       when: on_success
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
     - *test_command
 
 deploy-tagged:
   stage: deploy
   rules:
-    - if: $CI_COMMIT_TAG
+    - if: '$CI_COMMIT_TAG'
       when: on_success
   cache:
     key: "release-$CI_COMMIT_SHA"
     paths:
-      - binaries
+      - out
   script:
     - *release_command
   artifacts:
     when: on_success
-    name: "VlanLister_${CI_COMMIT_TAG}"
+    expire_in: never
+    name: "${TOOL_NAME}_${CI_COMMIT_TAG}"
     paths:
-      - VlanLister_${CI_COMMIT_TAG}/*
+      - ${TOOL_NAME}_${CI_COMMIT_TAG}/*
+
+
+
+build-any:
+  stage: build
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "stable"'
+      when: never
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - when: always
+      allow_failure: true
+  cache:
+    key: "dev-$CI_COMMIT_SHA"
+    paths:
+      - out
+  script:
+    - *build_command
+
+test-any:
+  stage: test
+  rules:
+    - if: '$CI_COMMIT_BRANCH == "master"'
+      when: never
+    - if: '$CI_COMMIT_BRANCH == "stable"'
+      when: never
+    - if: '$CI_COMMIT_TAG'
+      when: never
+    - when: always
+      allow_failure: true
+  cache:
+    key: "dev-$CI_COMMIT_SHA"
+    paths:
+      - out
+  script:
+    - *test_command
+  artifacts:
+    when: on_success
+    expire_in: 15 minutes
+    name: "${TOOL_NAME}_${CI_COMMIT_SHORT_SHA}_dev"
+    paths:
+      - out/*
