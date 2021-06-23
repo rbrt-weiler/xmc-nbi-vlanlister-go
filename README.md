@@ -19,22 +19,25 @@ This tool uses Go modules to handle dependencies.
 
 Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary. Prebuilt binaries may be available as artifacts from the GitLab CI/CD [pipeline for tagged releases](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/pipelines?scope=tags).
 
-Tested with [go1.15](https://golang.org/doc/go1.15) against XMC 8.4.1.24.
+Tested with [go1.16](https://golang.org/doc/go1.16) against XMC 8.5.2.6.
 
 ## Usage
 
 `VlanLister --help`:
 
 ```text
+Usage: xmc-nbi-vlanlister-go [options]
+
 Available options:
       --basicauth              Use HTTP Basic Auth instead of OAuth
+      --compress-output        Compress output using gzip
   -h, --host string            XMC Hostname / IP
       --includedown            Include inactive devices in result
       --insecurehttps          Do not validate HTTPS certificates
       --nocolor                Do not colorize output (Excel)
       --nohttps                Use HTTP instead of HTTPS
       --norefresh              Do not refresh (rediscover) devices
-      --outfile []string       File to write data to
+      --outfile string         File to write data to
       --path string            Path where XMC is reachable
       --port uint              HTTP port where XMC is listening (default 8443)
       --refreshinterval uint   Seconds to wait between triggering each refresh (default 5)
@@ -52,6 +55,7 @@ over suffixes. Valid FILETYPEs are:
   stdout  -->  prints CSV data to stdout
   xlsx    -->  writes XLSX data to the given file
 When using stdout, you should remove all stderr output (2>/dev/null).
+The additional suffix .gz can be used to trigger compression.
 
 Nearly all options that take a value can be set via environment variables:
   XMCHOST             -->  --host
@@ -68,6 +72,7 @@ Nearly all options that take a value can be set via environment variables:
   XMCREFRESHWAIT      -->  --refreshwait
   XMCINCLUDEDOWN      -->  --includedown
   XMCNOCOLOR          -->  --nocolor
+  XMCCOMPRESSOUTPUT   -->  --compress-output
 
 Environment variables can also be configured via a file called .xmcenv,
 located in the current directory or in the home directory of the current
