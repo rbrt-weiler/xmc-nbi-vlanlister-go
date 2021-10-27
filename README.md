@@ -1,6 +1,6 @@
 # XMC NBI VlanLister (Go)
 
-VlanLister uses the GraphQL-based API provided by the Northbound Interface (NBI) of [Extreme Management Center](https://www.extremenetworks.com/product/extreme-management-center/) (XMC; formerly known as NetSight) to generate a CSV/XLSX file that lists all VLANs that are configured on all up switches along with port associations. The tool is intended to be used during audits and for general network documentation.
+VlanLister uses the GraphQL-based API provided by the Northbound Interface (NBI) of [Extreme Management Center](https://www.extremenetworks.com/product/extreme-management-center/) (XMC; formerly known as NetSight) and [ExtremeCloud IQ Site Engine](https://www.extremenetworks.com/product/extremecloud-iq-site-engine/) (XIQ-SE) to generate a CSV/XLSX/JSON file that lists all VLANs that are configured on all up (and, optionally, down) switches along with port associations. The tool is intended to be used during audits and for general network documentation.
 
 ## Branches
 
@@ -19,7 +19,7 @@ This tool uses Go modules to handle dependencies.
 
 Use `go run ./...` to run the tool directly or `go build -o VlanLister ./...` to compile a binary. Prebuilt binaries may be available as artifacts from the GitLab CI/CD [pipeline for tagged releases](https://gitlab.com/rbrt-weiler/xmc-nbi-vlanlister-go/pipelines?scope=tags).
 
-Tested with [go1.16](https://golang.org/doc/go1.16) against XMC 8.5.2.6.
+Tested with [go1.16](https://golang.org/doc/go1.16) against XMC 8.5.2.6 and XIQ-SE 21.4.10.99.
 
 ## Usage
 
