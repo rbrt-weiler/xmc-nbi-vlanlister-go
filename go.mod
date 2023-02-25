@@ -9,5 +9,5 @@ require (
 	github.com/xuri/efp v0.0.0-20200605144744-ba689101faaf // indirect
 	gitlab.com/rbrt-weiler/go-module-envordef v0.1.2
 	gitlab.com/rbrt-weiler/go-module-xmcnbiclient v0.6.0
-	golang.org/x/net v0.0.0-20200602114024-627f9648deb9 // indirect
+	golang.org/x/net v0.7.0 // indirect
 )
